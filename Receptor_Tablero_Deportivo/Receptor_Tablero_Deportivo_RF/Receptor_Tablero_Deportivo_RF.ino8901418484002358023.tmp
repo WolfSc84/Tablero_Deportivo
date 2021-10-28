@@ -1,0 +1,112 @@
+//Libreria para operar a 32Mhz
+//#include <avr/power.h>
+
+//Libreria SPI para manejo de DMD y RF
+#include <SPI.h>
+
+// Librerias Funciones RF
+#include <nRF24L01.h>
+#include <RF24.h>
+
+//Codigo del canal de transmision
+const uint64_t codigo = 0xE8E8F0F0E1LL;
+
+//Declaremos los pines CE y el CSN
+#define CE_PIN 9
+#define CSN_PIN 10
+
+//Objeto radio (NRF24L01)
+RF24 radio(CE_PIN, CSN_PIN);
+
+//Vector con los datos a recibir
+char datos[6];
+
+//Anadiendo funcion para emular puerto serial adicional
+#include <SoftwareSerial.h>
+
+//Definiendo pines como Tx y Rx para emular puerto serial
+SoftwareSerial mySerial(2, 3); // RX, TX
+
+//Indicador LED de envio
+#define PIN_LED 4
+
+// Arranque inicial del sistema
+void setup() {
+  // Seteamos el reloj a 32Mhz
+  //clock_prescale_set(clock_div_1);
+
+  //Inicializamos el NRF24L01
+  radio.begin();
+
+  //Configuracion de la modulacion
+  radio.setAutoAck(false);
+
+  //Frecuencia a utilizar
+  radio.setDataRate(RF24_250KBPS);
+
+  //Abrimos el canal de lectura
+  radio.openReadingPipe(1, codigo);
+
+  //Inicializamos la escucha por el canal
+  radio.startListening();
+
+  //Detenemos la escucha por el canal
+  //radio.stopListening();
+
+  //Inicializamos el puerto serie nativo
+  Serial.begin(9600);
+  Serial.println("Iniciando...");
+
+  //Inicializamos el puerto serie emulado SoftwareSerial
+  mySerial.begin(9600);
+
+  //Led indicador de datos recibidos
+  pinMode(PIN_LED, OUTPUT);
+}
+
+void loop() {
+  // Chequeamos si hay data en el canal de lectura
+  if (radio.available()) {
+
+    //Leemos los datos y los guardamos en la variable datos[]
+    digitalWrite(PIN_LED, HIGH);
+    radio.read(datos, sizeof(datos));
+
+    //Reportamos por el puerto serial los datos recibidos
+    Serial.print("Los datos recibidos son: " );
+    Serial.println(datos);
+
+    //Procedemos a enviar los datos por puerto serial emulado
+    delay(100);
+    digitalWrite(PIN_LED, LOW);
+    delay(100);
+    send_data(datos);
+  } else {
+    Serial.println("No hay datos recibidos en el bus de datos...");
+  };
+  delay(1000);
+}
+
+void send_data(char datos[6]) {
+  //Inicia el proceso de envio de datos por puerto serial emulado
+  for (int x = 0; x < 6; x++) {
+    delay(100);
+    digitalWrite(PIN_LED, HIGH);
+    int byteSent = mySerial.print(datos[x]);
+    if (byteSent > 0) {
+      Serial.print("Se envio el dato en la posicion ");
+      Serial.print(x);
+      Serial.print(" correctamente, cuyo valor es ");
+      Serial.print(datos[x]);
+      Serial.println(".");
+      byteSent = 0;
+      delay(100);
+      digitalWrite(PIN_LED, LOW);
+    } else {
+      Serial.println("No se pudo enviar los datos correctamente.");
+      delay(250);
+      digitalWrite(PIN_LED, LOW);
+      break;
+    }
+  }
+}
