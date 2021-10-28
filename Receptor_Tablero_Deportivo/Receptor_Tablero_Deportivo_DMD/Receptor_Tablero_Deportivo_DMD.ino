@@ -97,5 +97,5 @@ void validateData(){
   Serial.print("Enviando los datos ");
   Serial.print(datos);
   Serial.println(" para comprobar lo que se recibio por el I2C, a traves el puerto serial emulado...");
-  arduino.print(datos);
-}
+  arduino.println(datos);
+ }

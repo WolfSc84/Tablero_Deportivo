@@ -5,10 +5,10 @@
 #include <Wire.h>
 
 //Libreria Software Serial
-#include <SoftwareSerial.h>
+//#include <SoftwareSerial.h>
 
 //Definimos los pines del puerto serial
-SoftwareSerial arduino(15,14); //Rx, Tx
+//SoftwareSerial arduino(15, 14); //Rx, Tx
 
 // Libreria Funcion de tiempo DS3231
 #include "RTClib.h"
@@ -38,7 +38,7 @@ char datos_remote[6];
 
 char datos[10], temp;
 boolean flag = false;
-char dataSlave;
+char dataSlave[10];
 
 //Variables para el control de tiempo
 int  minuto = 0, segundo = 0, decenas_minutos = 0, unidad_minutos = 0, decenas_segundos = 0, unidad_segundos = 0, segundero = 0;
@@ -59,31 +59,31 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Iniciando...");
 
-  //Inicializamos el puerto serial emulado
-  arduino.begin(9600);
-  Serial.println("Iniciando serial emulado...");
+//  Inicializamos el puerto serial emulado
+//  arduino.begin(9600);
+//  Serial.println("Iniciando serial emulado...");
 
   //Inicializamos el puerto I2C como maestro
-  Serial.println("Iniciando el puerto I2C como maestro...");
+//  Serial.println("Iniciando el puerto I2C como maestro...");
   Wire.begin();
 
   //Deteccion del reloj
-  Serial.println("Detectando reloj...");
+//  Serial.println("Detectando reloj...");
   if (rtc.begin()) {
-    Serial.println("RTC detectado!");
+//    Serial.println("RTC detectado!");
   } else {
     Serial.println("No se puede encontrar Reloj RTC!!");
     while (1);
   }
 
   //Verificar si el reloj no tiene bateria y se encuentra desincronizado
-  Serial.println("Verificando estado de energia y configuracion de tiempo actualmente en el RTC.");
+//  Serial.println("Verificando estado de energia y configuracion de tiempo actualmente en el RTC.");
   if (rtc.lostPower()) {
     Serial.println("RTC sin energia. Configurando el tiempo!");
     // Esta linea setea el RTC a la fecha y tiempo de esta compilacion
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   } else {
-    Serial.println("RTC con configuracion de tiempo valida!");
+//    Serial.println("RTC con configuracion de tiempo valida!");
   }
 
   //Inicializamos el NRF24L01
@@ -183,16 +183,21 @@ void loop() {
 //Inicia el proceso de envio de datos por puerto I2C
 boolean send_data() {
   Wire.beginTransmission(1);
-  delay(20);
   Wire.write(datos, sizeof(datos));
-  delay(20);
   Wire.endTransmission();
+//  arduino.listen();
   Serial.print("Se enviaron por el puerto I2C los datos: " );
   Serial.print(datos);
   Serial.print(" con una longitud de ");
   Serial.print(sizeof(datos));
   Serial.println(" bytes.");
-  delay(100);
+  delay(50);
+//  for (int x = 0; x < 10 ; x++) {
+//    if (arduino.available() > 0) {
+//      dataSlave[x] = (char)arduino.read();
+//      delay(20);
+//    }
+//  }
 //  Serial.print("La datos recibidos por el puerto serial emulado son ");
 //  Serial.print(dataSlave);
 //  Serial.print(" con una longitud de ");
