@@ -1,0 +1,40 @@
+/*
+   Se definen botones multiproposito con el fin de minimizar la cantidad de botones en el control del tablero:
+
+   2 ----> Boton Start/Pause/Stop: Boton para el control del cronometro de juego. Los estados Start (1) y Pause (0) son dependientes uno del otro, es decir el estado depende del estado anterior.
+                                    Para activar un Stop se requiere presionar el boton por un total de 5 segundos continuos, limpiando asi por completo el cronometro y seteandolo al valor inicial.
+
+   3 ----> Boton Futbol Game: Boton para configurar el cronometro y reglas de juego acorde a las reglas de Futbol Soccer. Setea el cronometro a un maximo de 45 min por periodo de juego para los dos primeros tiempos.
+                               Finalizado los dos primeros tiempos de juego se puede configurar periodos adicionales con un maximo de 15 min.
+
+   4 ----> Boton Futbol Sala: Boton para configurar el cronometro y reglas de juego acorde a las reglas de Futbol Sala. Setea el cronometro a un maximo de 20 min por periodo de juego para los dos primeros tiempos.
+                               Finalizado los dos primeros tiempos de juego se puede configurar periodos adicionales con un maximo de 10 min.
+
+   5 ----> Boton Basketball Game: Boton para configurar el cronometro y reglas de juego acorde a las reglas de Basketball FIBA. Setea el cronometro a un maximo de 10 min por periodo de juego para los dos primeros tiempos.
+                                   Finalizado los dos primeros tiempos de juego se puede configurar periodos adicionales con un maximo de 5 min.
+
+   6 ----> Boton Deporte No Cronometrizado: Boton para configurar las reglas de juego para Deportes mo Cronometrizados. Setea el cronometro mostrando la hora actual.
+
+   7 ----> Score Equipo Local: Boton para controlar el Score del equipo local. Una pulsacion con una duracion menor a 2 segundos aumenta el score un punto. Una pulsacion con una duracion mayor a 5 segundos disminuye un punto.
+                                Una pulsacion con una duracion mayor a 10 segundos resetea el marcador del equipo Local seteandolo en cero.
+
+   8 ----> Score Equipo Visitante: Boton para controlar el Score del equipo Visitante. Una pulsacion con una duracion menor a 2 segundos aumenta el score un punto. Una pulsacion con una duracion mayor a 5 segundos disminuye un punto.
+                                    Una pulsacion con una duracion mayor a 10 segundos resetea el marcador del equipo Visitante seteandolo en cero.
+
+   14 ----> Faltas Equipo Local: Boton para controlar el Faltas del equipo Local. Una pulsacion con una duracion menor a 2 segundos aumenta el el total de faltas en un punto. Una pulsacion con una duracion mayor a 5 segundos disminuye un punto.
+                                 Una pulsacion con una duracion mayor a 10 segundos resetea el contador de faltas del equipo Local seteandolo en cero.
+
+   15 ----> Faltas Equipo Visitante: Boton para controlar el Faltas del equipo Visitante. Una pulsacion con una duracion menor a 2 segundos aumenta el el total de faltas en un punto. Una pulsacion con una duracion mayor a 5 segundos disminuye un punto.
+                                      Una pulsacion con una duracion mayor a 10 segundos resetea el contador de faltas del equipo Visitante seteandolo en cero.
+
+   16 ----> Control de tiempo extra: Boton para controlar el total de minutos extras que se manejaran en un periodo de tiempo. Permite aumentar el tiempo extra a un maximo del valor del tiempo ordinario que se esta jugando.
+                                      Una pulsacion con una duracion menor a 2 segundos aumenta el total de minutos en un punto. Una pulsacion con una duracion mayor a 5 segundos disminuye un punto.
+                                      Una pulsacion con una duracion mayor a 10 segundos resetea el contador de tiempo extra en cero.
+
+   17 ----> Control del periodo de tiempo: Boton para controlar el periodo de tiempo que se esta jugando.
+                                            Una pulsacion con una duracion menor a 2 segundos aumenta el periodo en un punto. Una pulsacion con una duracion mayor a 5 segundos disminuye un punto.
+                                            Una pulsacion con una duracion mayor a 10 segundos resetea los periodos en cero.
+
+   18 ----> Reset: Resetea el tablero a las configuraciones por default. Contadores en cero y mostrando la hora actual.
+
+*/

@@ -39,14 +39,26 @@ boolean flag = false;
 //Bandera de juego seleccionado
 boolean juego = false;
 
-//Banderas de control de juego (arranque, pausa y parada)
-boolean control[3] = {false,false,false};
+//Control de juego (Arranque, Pausa, Fin Periodo, Fin Juego)
+boolean control[4] = {false, false, false, false};
 
-//Valores del juego
-int maxTime, maxPeriods, maxExtra;
+//Tipo de cronometro (Periodo, Extra)
+boolean runningTime[2] = {false, false};
 
-//Datos de tiempo
-int minutos, segundos, segundero = 60, minGame, segGame;
+//Control de puntajes y faltas (Puntaje Local,Falta Local,Puntaje Visitante,Falta Visitante)
+int teams[4] = {0, 0, 0, 0};
+
+//Control de tiempo extra y periodos (Tiempo Extra Adicional, Periodo Actual, Extra Actual)
+int controlTime[3] = {0, 0, 0};
+
+//Valores del juego (Tiempo maximo periodo Normal, Maximo numero de periodos, Maximo Tiempo de un Extra, Maximo numero de Tiempos Extras)
+int configGame[4] = {0, 0, 0, 0};
+
+//Datos de tiempo (Minutos, Segundos, Minuto de juego, Segundo de Juego)
+int timer[4] = {0, 0, 0, 0};
+
+//Control de cambio en el tiempo
+int segundero = 60;
 
 //Indicador LED de recepcion Inalambrica
 #define PIN_LED 4
@@ -77,7 +89,7 @@ void setup() {
   dmd.begin();
   dmd.clearScreen();
 
-  //Led indicador de datos recibidos  
+  //Led indicador de datos recibidos
   pinMode(PIN_LED, OUTPUT);
   digitalWrite(PIN_LED, LOW);
 
@@ -87,16 +99,9 @@ void setup() {
 
 //Ejecucion del loop principal
 void loop() {
-  if(juego) {
-    controlGame();
-    if(control[0]){
-      if(segundero != segundos){
-        cronometer();
-          
-      }
-      
-    }  
-    
+  if (juego) {
+    if()
+    game();
   }
 }
 
@@ -118,12 +123,12 @@ void receiveEvent(int bytes) {
 }
 
 void tiempo() {
-  minutos = (charToNumber(datos[0]) * 10) + charToNumber(datos[1]);
-  segundos = (charToNumber(datos[2]) * 10) + charToNumber(datos[3]);
+  timer[0] = (charToNumber(datos[0]) * 10) + charToNumber(datos[1]);
+  timer[1] = (charToNumber(datos[2]) * 10) + charToNumber(datos[3]);
   Serial.print("Tiempo (mm:ss): ");
-  Serial.print(minutos);
+  Serial.print(timer[0]);
   Serial.print(':');
-  Serial.print(segundos);
+  Serial.print(timer[1]);
 }
 
 void data() {
@@ -135,60 +140,62 @@ void data() {
       }
       Serial.print(datos[x]);
       flag = true;
+    } else {
+      flag = false;
     }
   }
   Serial.println();
   if (!juego && flag) {
-    juego = gameSet(datos_remote[0]);
+    juego = gameSet();
   }
 }
 
-boolean gameSet(char game) {
-  switch (game) {
+boolean gameSet() {
+  switch (datos_remote[1]) {
     case 's':
-      configGame(20, 2, 5);
+      setGame(20, 2, 5, 2);
       return true;
     case 'b':
-      configGame(10, 4, 5);
+      setGame(10, 4, 5, 0);
       return true;
     case 'o':
-      configGame(0, 0, 0);
+      setGame(0, 0, 0, 0);
       return true;
     default:
-      flag = false;
       return false;
   }
 }
 
-void controlGame(){
-    switch(datos_remote[0]){
-      case 'r':
-        control[0] = true;
-        control[1] = false;
-        control[2] = false;
-        break;
-      case 'p':
-        control[0] = false;
-        control[1] = true;
-        control[2] = false;
-        break;
-      case 's':
-        control[0] = false;
-        control[1] = false;
-        control[2] = true;
-        break;
-      default:
-        break;      
-    }  
+void controlGame() {
+  switch (datos_remote[0]) {
+    case 'r':
+      control[0] = true;
+      control[1] = false;
+      control[3] = false;
+      break;
+    case 'p':
+      control[0] = false;
+      control[1] = true;
+      control[3] = false;
+      break;
+    case 's':
+      control[0] = false;
+      control[1] = false;
+      control[3] = true;
+      break;
+    default:
+      break;
+  }
 }
 
-void configGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime) {
-  maxTime = maxTimeGame;
-  maxPeriods = maxPeriodsGame;
-  maxExtra = maxExtraTime;
-  minGame = 0;
-  segGame = 0;
-  segundero = segundos;
+void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtras) {
+  configGame[0] = maxTimeGame;
+  configGame[1] = maxPeriodsGame;
+  configGame[2] = maxExtraTime;
+  configGame[3] = maxExtras;
+  timer[0] = 0;
+  timer[1] = 0;
+  segundero = timer[3];
   //imprimir pantalla con valores iniciales
 }
 
@@ -227,18 +234,133 @@ int charToNumber(char number) {
   }
 }
 
+void points() {
+  switch (datos_remote[2]) {
+    case 'L':
+      teams[0]++;
+      break;
+    case 'l':
+      teams[0]--;
+      break;
+    case 'V':
+      teams[2]++;
+      break;
+    case 'v':
+      teams[2]--;
+      break;
+    case 'X':
+      teams[0] = 0;
+      break;
+    case 'Y':
+      teams[2] = 0;
+      break;
+    default:
+      break;
+  }
+}
+
+void fouls() {
+  switch (datos_remote[3]) {
+    case 'L':
+      teams[1]++;
+      break;
+    case 'l':
+      teams[1]--;
+      break;
+    case 'V':
+      teams[3]++;
+      break;
+    case 'v':
+      teams[3]--;
+      break;
+    case 'X':
+      teams[1] = 0;
+      break;
+    case 'Y':
+      teams[3] = 0;
+      break;
+    default:
+      break;
+  }
+}
+
+void extra() {
+  switch (datos_remote[4]) {
+    case 'U':
+      controlTime[0]++;
+      break;
+    case 'D':
+      controlTime[0]--;
+      break;
+    case 'R':
+      controlTime[0] = 0;
+      break;
+    default:
+      break;
+  }
+}
+
+void period() {
+  switch (datos_remote[4]) {
+    case 'P':
+      controlTime[1]++;
+      break;
+    case 'p':
+      controlTime[1]--;
+      break;
+    case 'r':
+      controlTime[1] = 0;
+      break;
+    default:
+      break;
+  }
+}
+
 boolean cronometer() {
-  if (segGame < 60) {
-    segGame++;
-  } else {
-    if (minGame < maxTime) {
-      minGame++;
-      segGame = 0;
-      return false;
+  if (runningTime[0]) {
+    if (timer[3] < 60) {
+      timer[3]++;
     } else {
-      minGame == maxTime;
-      segGame = 0;
-      return true;
+      if (timer[2] < (configGame[0] + controlTime[0])) {
+        timer[2]++;
+        timer[3] = 0;
+        return false;
+      } else {
+        timer[2] = (configGame[0] + controlTime[0]);
+        timer[3] = 0;
+        control[2] = true;
+        return true;
+      }
+    }
+  } else {
+    if (timer[3] < 60) {
+      timer[3]++;
+    } else {
+      if (timer[2] < (configGame[2])) {
+        timer[2]++;
+        timer[3] = 0;
+        return false;
+      } else {
+        timer[2] = (configGame[2]);
+        timer[3] = 0;
+        control[2] = true;
+        return true;
+      }
     }
   }
+}
+
+void game() {
+  controlGame();
+  boolean valRun = control[0] && !control[1] && !control[2] && !control[3];
+  if (valRun) {
+    if (segundero != timer[1]) {
+      cronometer();
+    }
+    points();
+    fouls();
+    extra();
+  }
+
+
 }
