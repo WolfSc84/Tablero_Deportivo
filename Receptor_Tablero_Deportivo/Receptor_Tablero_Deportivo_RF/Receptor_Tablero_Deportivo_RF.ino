@@ -161,11 +161,11 @@ void loop() {
       //Procedemos a enviar los datos por puerto I2C
       assemble_data();
       if (!send_data()) {
-        Serial.println("Error al enviar los datos por I2C... No se enviaron correctamente!");
+        Serial.println("Error al enviar datos por el puerto I2C... Fallo en el envio!");
         digitalWrite(PIN_FLAG, LOW);
       } else {
         digitalWrite(PIN_FLAG, HIGH);
-        Serial.print("Los datos se enviaron correctamente por el puerto I2C! Los datos son " );
+        Serial.print("Envio correcto por el puerto I2C! Se enviaron los datos " );
         Serial.print(datos);
         Serial.print(" con una longitud de ");
         Serial.print(sizeof(datos));
@@ -174,7 +174,6 @@ void loop() {
       delay(50);
       digitalWrite(PIN_FLAG, LOW);
       segundero = segundo;
-      hora();
       Serial.println("Esperando recibir informacion en el bus de datos SPI por el dispositivo RF...");
     }
   }
@@ -185,24 +184,7 @@ boolean send_data() {
   Wire.beginTransmission(1);
   Wire.write(datos, sizeof(datos));
   Wire.endTransmission();
-//  arduino.listen();
-  Serial.print("Se enviaron por el puerto I2C los datos: " );
-  Serial.print(datos);
-  Serial.print(" con una longitud de ");
-  Serial.print(sizeof(datos));
-  Serial.println(" bytes.");
   delay(50);
-//  for (int x = 0; x < 10 ; x++) {
-//    if (arduino.available() > 0) {
-//      dataSlave[x] = (char)arduino.read();
-//      delay(20);
-//    }
-//  }
-//  Serial.print("La datos recibidos por el puerto serial emulado son ");
-//  Serial.print(dataSlave);
-//  Serial.print(" con una longitud de ");
-//  Serial.print(sizeof(dataSlave));
-//  Serial.println(" bytes");
   return true;
 }
 
@@ -272,7 +254,7 @@ void tiempo() {
   }
 }
 
-//Funcion mostrar en pantalla LED informacion
+////Funcion mostrar en pantalla LED informacion
 void hora() {
   if (minuto < 10) {
     Serial.print(decenas_minutos, DEC);

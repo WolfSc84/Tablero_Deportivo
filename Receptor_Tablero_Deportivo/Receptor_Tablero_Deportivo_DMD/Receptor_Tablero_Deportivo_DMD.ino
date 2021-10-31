@@ -1,12 +1,6 @@
 //Libreria SPI para manejo de DMD
 #include <SPI.h>
 
-//Libreria Software Serial
-//#include <SoftwareSerial.h>
-
-//Definimos los pines del puerto serial
-//SoftwareSerial arduino(14,15); //Rx, Tx
-
 //Libreria I2C
 #include <Wire.h>
 
@@ -39,26 +33,26 @@ boolean flag = false;
 //Bandera de juego seleccionado
 boolean juego = false;
 
-//Control de juego (Arranque, Pausa, Fin Periodo, Fin Juego)
-boolean control[4] = {false, false, false, false};
+//Control de juego (Arranque, Pausa, Fin Periodo, Fin Extra, Fin Juego)
+boolean control[5] = {false, false, false, false, false};
 
-//Tipo de cronometro (Periodo, Extra)
-boolean runningTime[2] = {false, false};
+//Tipo de cronometro (Periodo, Complementario, Periodos Completados, Complementario Completados)
+boolean runningTime[4] = {false, false, false, false};
 
 //Control de puntajes y faltas (Puntaje Local,Falta Local,Puntaje Visitante,Falta Visitante)
 int teams[4] = {0, 0, 0, 0};
 
-//Control de tiempo extra y periodos (Tiempo Extra Adicional, Periodo Actual, Extra Actual)
-int controlTime[3] = {0, 0, 0};
+//Control de tiempo complementario y periodos (Complementario Actual, Periodo Actual)
+int controlTime[2] = {0, 0};
 
-//Valores del juego (Tiempo maximo periodo Normal, Maximo numero de periodos, Maximo Tiempo de un Extra, Maximo numero de Tiempos Extras)
-int configGame[4] = {0, 0, 0, 0};
+//Valores del juego (Tiempo maximo periodo Normal, Maximo numero de periodos, Maximo Tiempo de un omplementario, Maximo numero de Tiempos Complemenmtarios, Extra)
+int configGame[5] = {0, 0, 0, 0, 0};
 
 //Datos de tiempo (Minutos, Segundos, Minuto de juego, Segundo de Juego)
 int timer[4] = {0, 0, 0, 0};
 
 //Control de cambio en el tiempo
-int segundero = 60;
+int segundero;
 
 //Indicador LED de recepcion Inalambrica
 #define PIN_LED 4
@@ -72,12 +66,7 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Iniciando...");
 
-  //Inicializamos el puerto serial emulado
-  //  arduino.begin(9600);
-  //  Serial.println("Iniciando serial emulado...");
-
   //Inicializamos el puerto I2C como esclavo en el canal 1
-  //  Serial.println("Iniciando el puerto I2C como esclavo en el canal 1...");
   Wire.begin(1);
 
   //Creamos las interrupciones que se activaran en caso de una solicitud o recepcion de dato
@@ -100,7 +89,6 @@ void setup() {
 //Ejecucion del loop principal
 void loop() {
   if (juego) {
-    if()
     game();
   }
 }
@@ -148,6 +136,12 @@ void data() {
   if (!juego && flag) {
     juego = gameSet();
   }
+  if (!runningTime[2] && !runningTime[3]) {
+    period();
+  }
+  if (datos_remote[5] == 'Y') {
+    resetBoard();
+  }
 }
 
 boolean gameSet() {
@@ -171,17 +165,17 @@ void controlGame() {
     case 'r':
       control[0] = true;
       control[1] = false;
-      control[3] = false;
+      control[4] = false;
       break;
     case 'p':
       control[0] = false;
       control[1] = true;
-      control[3] = false;
+      control[4] = false;
       break;
     case 's':
       control[0] = false;
       control[1] = false;
-      control[3] = true;
+      control[4] = true;
       break;
     default:
       break;
@@ -195,6 +189,16 @@ void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtra
   configGame[3] = maxExtras;
   timer[0] = 0;
   timer[1] = 0;
+  teams[0] = 0;
+  teams[1] = 0;
+  teams[2] = 0;
+  teams[3] = 0;
+  controlTime[0] = 0;
+  controlTime[1] = 1;
+  runningTime[0] = true;
+  runningTime[1] = false;
+  runningTime[2] = false;
+  runningTime[3] = false;
   segundero = timer[3];
   //imprimir pantalla con valores iniciales
 }
@@ -240,13 +244,17 @@ void points() {
       teams[0]++;
       break;
     case 'l':
-      teams[0]--;
+      if (teams[0] > 0) {
+        teams[0]--;
+      }
       break;
     case 'V':
       teams[2]++;
       break;
     case 'v':
-      teams[2]--;
+      if (teams[2] > 0) {
+        teams[2]--;
+      }
       break;
     case 'X':
       teams[0] = 0;
@@ -265,13 +273,17 @@ void fouls() {
       teams[1]++;
       break;
     case 'l':
-      teams[1]--;
+      if (teams[1] > 0) {
+        teams[1]--;
+      }
       break;
     case 'V':
       teams[3]++;
       break;
     case 'v':
-      teams[3]--;
+      if (teams[3] > 0) {
+        teams[3]--;
+      }
       break;
     case 'X':
       teams[1] = 0;
@@ -287,13 +299,17 @@ void fouls() {
 void extra() {
   switch (datos_remote[4]) {
     case 'U':
-      controlTime[0]++;
+      if (configGame[5] < configGame[0]) {
+        configGame[5]++;
+      }
       break;
     case 'D':
-      controlTime[0]--;
+      if (configGame[5] > 0) {
+        configGame[5]--;
+      }
       break;
     case 'R':
-      controlTime[0] = 0;
+      configGame[5] = 0;
       break;
     default:
       break;
@@ -301,50 +317,129 @@ void extra() {
 }
 
 void period() {
-  switch (datos_remote[4]) {
-    case 'P':
-      controlTime[1]++;
-      break;
-    case 'p':
-      controlTime[1]--;
-      break;
-    case 'r':
-      controlTime[1] = 0;
-      break;
-    default:
-      break;
+  if (!control[0] && control[1]) {
+    if (controlTime[1] && !controlTime[0]) {
+      switch (datos_remote[4]) {
+        case 'P':
+          if (controlTime[1] < configGame[1]) {
+            controlTime[1]++;
+            timer[2] = 0;
+            timer[3] = 0;
+            control[2] = false;
+            control[3] = false;
+            control[4] = false;
+          }
+          break;
+        case 'p':
+          if (controlTime[1] > 0) {
+            controlTime[1]--;
+            timer[2] = 0;
+            timer[3] = 0;
+            control[2] = false;
+            control[3] = false;
+            control[4] = false;
+          }
+          break;
+        case 'r':
+          controlTime[1] = 0;
+          timer[2] = 0;
+          timer[3] = 0;
+          control[2] = false;
+          control[3] = false;
+          control[4] = false;
+          break;
+        default:
+          break;
+      }
+    } else if (!controlTime[1] && controlTime[0]) {
+      switch (datos_remote[4]) {
+        case 'P':
+          if (controlTime[0] < configGame[3]) {
+            controlTime[0]++;
+            timer[2] = 0;
+            timer[3] = 0;
+            control[3] = false;
+            control[4] = false;
+          }
+          break;
+        case 'p':
+          if (controlTime[0] > 0) {
+            controlTime[0]--;
+            timer[2] = 0;
+            timer[3] = 0;
+            control[3] = false;
+            control[4] = false;
+          }
+          break;
+        case 'r':
+          controlTime[0] = 0;
+          timer[2] = 0;
+          timer[3] = 0;
+          control[3] = false;
+          control[4] = false;
+          break;
+        default:
+          break;
+      }
+    }
   }
 }
 
-boolean cronometer() {
-  if (runningTime[0]) {
+void cronometer() {
+  if (runningTime[0] && !runningTime[2]) {
     if (timer[3] < 60) {
       timer[3]++;
     } else {
-      if (timer[2] < (configGame[0] + controlTime[0])) {
+      if (timer[2] < (configGame[0] + configGame[5])) {
         timer[2]++;
         timer[3] = 0;
         return false;
       } else {
-        timer[2] = (configGame[0] + controlTime[0]);
+        timer[2] = (configGame[0] + configGame[5]);
         timer[3] = 0;
         control[2] = true;
-        return true;
+        control[0] = false;
+        if (control[2] && (controlTime[1] == configGame[1])) {
+          runningTime[2] = true;
+          runningTime[0] = false;
+          runningTime[1] = true;
+        }
       }
     }
-  } else {
+  } else if (runningTime[1] && !runningTime[3]) {
     if (timer[3] < 60) {
       timer[3]++;
     } else {
-      if (timer[2] < (configGame[2])) {
+      if (timer[2] < configGame[2]) {
         timer[2]++;
         timer[3] = 0;
         return false;
       } else {
-        timer[2] = (configGame[2]);
+        timer[2] = configGame[2];
         timer[3] = 0;
-        control[2] = true;
-        return true;
+        control[3] = true;
+        control[0] = false;
+        if (control[3] && (controlTime[2] == configGame[3])) {
+          runningTime[3] = true;
+          runningTime[1] = false;
+        }
+      }
+    }
+  }
+}
+
+void resetBoard() {
+  flag = false;
+  juego = false;
+  for (int x = 0; x < sizeof(control); x++) {
+    control[x] = false;
+    configGame[x] = 0;
+    if (x < sizeof(runningTime)) {
+      runningTime[x] = false;
+      teams[x] = 0;
+      timer[x] = 0;
+      if (x < sizeof(controlTime)) {
+        controlTime[x] = 0;
       }
     }
   }
@@ -357,10 +452,10 @@ void game() {
     if (segundero != timer[1]) {
       cronometer();
     }
-    points();
-    fouls();
-    extra();
+    if (flag) {
+      extra();
+      points();
+      fouls();
+    }
   }
-
-
 }
