@@ -54,12 +54,6 @@ int timer[4] = {0, 0, 0, 0};
 //Control de cambio en el tiempo
 int segundero;
 
-//Indicador LED de recepcion Inalambrica
-#define PIN_LED 4
-
-//Indicador de transmision correcta de datos por I2C
-#define PIN_FLAG 5
-
 // Arranque inicial del sistema
 void setup() {
   //Inicializamos el puerto serie
@@ -77,23 +71,16 @@ void setup() {
   dmd.selectFont(Arial_Black_16);
   dmd.begin();
   dmd.clearScreen();
-
-  //Led indicador de datos recibidos
-  pinMode(PIN_LED, OUTPUT);
-  digitalWrite(PIN_LED, LOW);
-
-  //Flag de transmision de datos
-  pinMode(PIN_FLAG, INPUT);
 }
 
 //Ejecucion del loop principal
 void loop() {
-  if (!juego && flag) {
-    juego = gameSet();
-  } else if (juego) {
+  if (juego) {
     game();
+  } else if (flag) {
+    juego = gameSelect();
   }
-  //printScreen();
+  printScreen();
 }
 
 //Interrupcion al recibir datos del maestro
@@ -111,9 +98,6 @@ void receiveEvent(int bytes) {
   Serial.println(" bytes.");
   tiempo();
   data();
-  if (datos_remote[5] == 'Y') {
-    resetBoard();
-  }
 }
 
 //Captura el tiempo recibido del reloj desde el maestro
@@ -144,7 +128,7 @@ void data() {
 }
 
 //Selecciona el tipo de deporte
-boolean gameSet() {
+boolean gameSelect() {
   switch (datos_remote[1]) {
     case 's':
       setGame(20, 2, 5, 2);
@@ -189,8 +173,9 @@ void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtra
   configGame[1] = maxPeriodsGame;
   configGame[2] = maxExtraTime;
   configGame[3] = maxExtras;
-  timer[0] = 0;
-  timer[1] = 0;
+  configGame[4] = 0;
+  timer[2] = 0;
+  timer[3] = 0;
   teams[0] = 0;
   teams[1] = 0;
   teams[2] = 0;
@@ -202,7 +187,7 @@ void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtra
   runningTime[2] = false;
   runningTime[3] = false;
   segundero = timer[3];
-  //imprimir pantalla con valores iniciales
+  printScreen();
 }
 
 //Convierte caracteres numericos a numeros decimales
@@ -395,16 +380,19 @@ void cronometer() {
   if (runningTime[0] && !runningTime[2]) {
     if (timer[3] < 60) {
       timer[3]++;
+      segundero = timer[3];
     } else {
       if (timer[2] < (configGame[0] + configGame[5])) {
         timer[2]++;
         timer[3] = 0;
-        return false;
+        segundero = timer[3];
       } else {
         timer[2] = (configGame[0] + configGame[5]);
         timer[3] = 0;
+        segundero = timer[3];
         control[2] = true;
         control[0] = false;
+        control[1] = true;
         if (control[2] && (controlTime[1] == configGame[1])) {
           runningTime[2] = true;
           runningTime[0] = false;
@@ -415,17 +403,20 @@ void cronometer() {
   } else if (runningTime[1] && !runningTime[3]) {
     if (timer[3] < 60) {
       timer[3]++;
+      segundero = timer[3];
     } else {
       if (timer[2] < configGame[2]) {
         timer[2]++;
         timer[3] = 0;
-        return false;
+        segundero = timer[3];
       } else {
         timer[2] = configGame[2];
         timer[3] = 0;
+        segundero = timer[3];
         control[3] = true;
         control[0] = false;
-        if (control[3] && (controlTime[2] == configGame[3])) {
+        control[1] = true;
+        if (control[3] && (controlTime[0] == configGame[3])) {
           runningTime[3] = true;
           runningTime[1] = false;
         }
@@ -438,15 +429,18 @@ void cronometer() {
 void resetBoard() {
   flag = false;
   juego = false;
-  for (int x = 0; x < sizeof(control); x++) {
-    control[x] = false;
-    configGame[x] = 0;
-    if (x < sizeof(runningTime)) {
-      runningTime[x] = false;
-      teams[x] = 0;
-      timer[x] = 0;
-      if (x < sizeof(controlTime)) {
-        controlTime[x] = 0;
+  for (int x = 0; x < sizeof(datos_remote); x++) {
+    datos_remote[x] = 'N';
+    if (x < sizeof(control)) {
+      control[x] = false;
+      configGame[x] = 0;
+      if (x < sizeof(runningTime)) {
+        runningTime[x] = false;
+        teams[x] = 0;
+        timer[x] = 0;
+        if (x < sizeof(controlTime)) {
+          controlTime[x] = 0;
+        }
       }
     }
   }
@@ -455,10 +449,7 @@ void resetBoard() {
 //Controla y gestiona la ejecucion del juego
 void game() {
   controlGame();
-  boolean valRun = control[0] && !control[1] && !control[4];
-  boolean valPause = !control[0] && control[1] && !control[4];
-  boolean valStop = !control[0] && !control[1] && control[4];
-  if (valRun) {
+  if (control[0]) {
     if (segundero != timer[1]) {
       cronometer();
     }
@@ -467,16 +458,19 @@ void game() {
       points();
       fouls();
     }
-  } else if (valPause) {
-    if (!runningTime[2] && !runningTime[3]) {
+  } else if (control[1]) {
+    if (!runningTime[2] || !runningTime[3]) {
       period();
     }
-  } else if (valStop) {
+  } else if (control[4]) {
     runningTime[2] = true;
     runningTime[3] = true;
     runningTime[0] = false;
     runningTime[1] = false;
     juego = false;
+  }
+  if (datos_remote[5] == 'Y') {
+    resetBoard();
   }
 }
 
