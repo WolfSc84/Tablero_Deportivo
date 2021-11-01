@@ -88,7 +88,9 @@ void setup() {
 
 //Ejecucion del loop principal
 void loop() {
-  if (juego) {
+  if (!juego && flag) {
+    juego = gameSet();
+  } else if (juego) {
     game();
   }
   //printScreen();
@@ -109,8 +111,12 @@ void receiveEvent(int bytes) {
   Serial.println(" bytes.");
   tiempo();
   data();
+  if (datos_remote[5] == 'Y') {
+    resetBoard();
+  }
 }
 
+//Captura el tiempo recibido del reloj desde el maestro
 void tiempo() {
   timer[0] = (charToNumber(datos[0]) * 10) + charToNumber(datos[1]);
   timer[1] = (charToNumber(datos[2]) * 10) + charToNumber(datos[3]);
@@ -120,6 +126,7 @@ void tiempo() {
   Serial.print(timer[1]);
 }
 
+//Captura la data proveniente del control remoto RF
 void data() {
   for (int x = 4; x < sizeof(datos); x++) {
     if (datos[x] != 'N') {
@@ -134,17 +141,9 @@ void data() {
     }
   }
   Serial.println();
-  if (!juego && flag) {
-    juego = gameSet();
-  }
-  if (!runningTime[2] && !runningTime[3]) {
-    period();
-  }
-  if (datos_remote[5] == 'Y') {
-    resetBoard();
-  }
 }
 
+//Selecciona el tipo de deporte
 boolean gameSet() {
   switch (datos_remote[1]) {
     case 's':
@@ -161,6 +160,7 @@ boolean gameSet() {
   }
 }
 
+//Controla el juego (Arrancar, Pausar o Finalizar)
 void controlGame() {
   switch (datos_remote[0]) {
     case 'r':
@@ -183,6 +183,7 @@ void controlGame() {
   }
 }
 
+//Configura el juego con los parametros iniciales
 void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtras) {
   configGame[0] = maxTimeGame;
   configGame[1] = maxPeriodsGame;
@@ -204,6 +205,7 @@ void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtra
   //imprimir pantalla con valores iniciales
 }
 
+//Convierte caracteres numericos a numeros decimales
 int charToNumber(char number) {
   switch (number) {
     case '1':
@@ -239,6 +241,7 @@ int charToNumber(char number) {
   }
 }
 
+//Controla el puntaje de los equipos
 void points() {
   switch (datos_remote[2]) {
     case 'L':
@@ -268,6 +271,7 @@ void points() {
   }
 }
 
+//Controla las faltas de los equipos
 void fouls() {
   switch (datos_remote[3]) {
     case 'L':
@@ -297,6 +301,7 @@ void fouls() {
   }
 }
 
+//Controla el tiempo extra durante cada periodo de juego
 void extra() {
   switch (datos_remote[4]) {
     case 'U':
@@ -317,75 +322,75 @@ void extra() {
   }
 }
 
+//Controla los periodos de juego
 void period() {
-  if (!control[0] && control[1]) {
-    if (controlTime[1] && !controlTime[0]) {
-      switch (datos_remote[4]) {
-        case 'P':
-          if (controlTime[1] < configGame[1]) {
-            controlTime[1]++;
-            timer[2] = 0;
-            timer[3] = 0;
-            control[2] = false;
-            control[3] = false;
-            control[4] = false;
-          }
-          break;
-        case 'p':
-          if (controlTime[1] > 0) {
-            controlTime[1]--;
-            timer[2] = 0;
-            timer[3] = 0;
-            control[2] = false;
-            control[3] = false;
-            control[4] = false;
-          }
-          break;
-        case 'r':
-          controlTime[1] = 0;
+  if (runningTime[0] && !runningTime[1]) {
+    switch (datos_remote[4]) {
+      case 'P':
+        if (controlTime[1] < configGame[1]) {
+          controlTime[1]++;
           timer[2] = 0;
           timer[3] = 0;
           control[2] = false;
           control[3] = false;
           control[4] = false;
-          break;
-        default:
-          break;
-      }
-    } else if (!controlTime[1] && controlTime[0]) {
-      switch (datos_remote[4]) {
-        case 'P':
-          if (controlTime[0] < configGame[3]) {
-            controlTime[0]++;
-            timer[2] = 0;
-            timer[3] = 0;
-            control[3] = false;
-            control[4] = false;
-          }
-          break;
-        case 'p':
-          if (controlTime[0] > 0) {
-            controlTime[0]--;
-            timer[2] = 0;
-            timer[3] = 0;
-            control[3] = false;
-            control[4] = false;
-          }
-          break;
-        case 'r':
-          controlTime[0] = 0;
+        }
+        break;
+      case 'p':
+        if (controlTime[1] > 0) {
+          controlTime[1]--;
+          timer[2] = 0;
+          timer[3] = 0;
+          control[2] = false;
+          control[3] = false;
+          control[4] = false;
+        }
+        break;
+      case 'r':
+        controlTime[1] = 0;
+        timer[2] = 0;
+        timer[3] = 0;
+        control[2] = false;
+        control[3] = false;
+        control[4] = false;
+        break;
+      default:
+        break;
+    }
+  } else if (runningTime[1] && !runningTime[0]) {
+    switch (datos_remote[4]) {
+      case 'P':
+        if (controlTime[0] < configGame[3]) {
+          controlTime[0]++;
           timer[2] = 0;
           timer[3] = 0;
           control[3] = false;
           control[4] = false;
-          break;
-        default:
-          break;
-      }
+        }
+        break;
+      case 'p':
+        if (controlTime[0] > 0) {
+          controlTime[0]--;
+          timer[2] = 0;
+          timer[3] = 0;
+          control[3] = false;
+          control[4] = false;
+        }
+        break;
+      case 'r':
+        controlTime[0] = 0;
+        timer[2] = 0;
+        timer[3] = 0;
+        control[3] = false;
+        control[4] = false;
+        break;
+      default:
+        break;
     }
   }
 }
 
+//Cronometro de juego durante un periodo o tiempo complementario
 void cronometer() {
   if (runningTime[0] && !runningTime[2]) {
     if (timer[3] < 60) {
@@ -429,6 +434,7 @@ void cronometer() {
   }
 }
 
+//Resetea el tablero a valores iniciales
 void resetBoard() {
   flag = false;
   juego = false;
@@ -446,9 +452,12 @@ void resetBoard() {
   }
 }
 
+//Controla y gestiona la ejecucion del juego
 void game() {
   controlGame();
-  boolean valRun = control[0] && !control[1] && !control[2] && !control[3];
+  boolean valRun = control[0] && !control[1] && !control[4];
+  boolean valPause = !control[0] && control[1] && !control[4];
+  boolean valStop = !control[0] && !control[1] && control[4];
   if (valRun) {
     if (segundero != timer[1]) {
       cronometer();
@@ -458,7 +467,11 @@ void game() {
       points();
       fouls();
     }
-  } else if (control[4]) {
+  } else if (valPause) {
+    if (!runningTime[2] && !runningTime[3]) {
+      period();
+    }
+  } else if (valStop) {
     runningTime[2] = true;
     runningTime[3] = true;
     runningTime[0] = false;
@@ -467,82 +480,76 @@ void game() {
   }
 }
 
+//Imprime en pantalla del tablero los valores
 void printScreen() {
   dmd.clearScreen();
   //Fila Superior
-  if(teams[0] < 10){
+  if (teams[0] < 10) {
     dmd.drawString(13, 1, String(teams[0]));
-  }else{
-    separatedNumbers(teams[0],0);
+  } else {
+    separatedNumbers(teams[0], 0);
   }
-  if(controlTime[1] < 10){
+  if (controlTime[1] < 10) {
     dmd.drawString(46, 1, String(controlTime[1]));
-  }else{
-    separatedNumbers(controlTime[1],32);
+  } else {
+    separatedNumbers(controlTime[1], 32);
   }
-  if(teams[2] < 10){
+  if (teams[2] < 10) {
     dmd.drawString(77, 1, String(teams[2]));
-  }else{
-    separatedNumbers(teams[2],64);
+  } else {
+    separatedNumbers(teams[2], 64);
   }
   //Fila Central
-  if(teams[1] < 10){
+  if (teams[1] < 10) {
     dmd.drawString(109, 1, String(teams[0]));
-  }else{
-    separatedNumbers(teams[0],96);
+  } else {
+    separatedNumbers(teams[0], 96);
   }
-  if(configGame[4] < 10){
+  if (configGame[4] < 10) {
     dmd.drawString(141, 1, String(controlTime[1]));
-  }else{
-    separatedNumbers(controlTime[1],128);
+  } else {
+    separatedNumbers(controlTime[1], 128);
   }
-  if(teams[3] < 10){
+  if (teams[3] < 10) {
     dmd.drawString(173, 1, String(teams[3]));
-  }else{
-    separatedNumbers(teams[3],160);
+  } else {
+    separatedNumbers(teams[3], 160);
   }
   //Fila Inferior
-  if(timer[2] < 10){
+  if (timer[2] < 10) {
     dmd.drawString(205, 1, String(timer[2]));
-  }else{
-    separatedNumbers(timer[2],192);
+  } else {
+    separatedNumbers(timer[2], 192);
   }
   dmd.drawString(222, 1, ":");
-  if(timer[3] < 10){
+  if (timer[3] < 10) {
     dmd.drawString(237, 1, String(timer[3]));
-  }else{
-    separatedNumbers(timer[3],224);
-  } 
+  } else {
+    separatedNumbers(timer[3], 224);
+  }
   Serial.println("Tablero: ");
   Serial.print("Puntajes----> Local: ");
-  Serial.print("     Periodo");
-  Serial.println("     Puntaje Visitante");
-  Serial.print("          ");
   Serial.print(teams[0]);
-  Serial.print("     ");s
-  Serial.print(controlTime[1]);
-  Serial.print("     ");
+  Serial.print("     Visitante: ");
   Serial.println(teams[2]);
-  Serial.print("Faltas Local");
-  Serial.print("     Extra");
-  Serial.println("     Faltas Visitante");
-  Serial.print("          ");
+  Serial.print("Faltas----> Local: ");
   Serial.print(teams[1]);
-  Serial.print("     ");
-  Serial.print(configGame[4]);
-  Serial.print("     ");
+  Serial.print("     Visitante: ");
   Serial.println(teams[3]);
-  Serial.println("          Tiempo");
-  Serial.print("             ");
+  Serial.print("Periodo: ");
+  Serial.print(controlTime[1]);
+  Serial.print("     Extra: ");
+  Serial.println(configGame[4]);
+  Serial.print("Cronometro: ");
   Serial.print(timer[2]);
   Serial.print(":");
   Serial.println(timer[3]);
- 
 }
 
-void separatedNumbers(int number, int x){
-  int decenas = number/10;
-  int unidades = number - (decenas*10);
-  dmd.drawString(x+5, 1, String(decenas));
-  dmd.drawString(x+13, 1, String(unidades));   
+//Divide decenas de unidades
+void separatedNumbers(int number, int x) {
+  int decenas = number / 10;
+  int unidades = number - (decenas * 10);
+  dmd.drawString(x + 5, 1, String(decenas));
+  dmd.drawString(x + 13, 1, String(unidades));
 }
