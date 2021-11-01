@@ -272,6 +272,7 @@ void hora() {
   Serial.println();
 }
 
+//Convertir caracteres numericos a numero decimal
 char numberToChar(int number) {
   switch (number) {
     case 1:
