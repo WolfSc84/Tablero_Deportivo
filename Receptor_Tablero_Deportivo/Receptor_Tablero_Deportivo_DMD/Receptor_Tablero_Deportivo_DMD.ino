@@ -91,6 +91,7 @@ void loop() {
   if (juego) {
     game();
   }
+  //printScreen();
 }
 
 //Interrupcion al recibir datos del maestro
@@ -150,10 +151,10 @@ boolean gameSet() {
       setGame(20, 2, 5, 2);
       return true;
     case 'b':
-      setGame(10, 4, 5, 0);
+      setGame(10, 4, 5, 999);
       return true;
     case 'o':
-      setGame(0, 0, 0, 0);
+      setGame(999, 999, 999, 999);
       return true;
     default:
       return false;
@@ -457,5 +458,91 @@ void game() {
       points();
       fouls();
     }
+  } else if (control[4]) {
+    runningTime[2] = true;
+    runningTime[3] = true;
+    runningTime[0] = false;
+    runningTime[1] = false;
+    juego = false;
   }
+}
+
+void printScreen() {
+  dmd.clearScreen();
+  //Fila Superior
+  if(teams[0] < 10){
+    dmd.drawString(13, 1, String(teams[0]));
+  }else{
+    separatedNumbers(teams[0],0);
+  }
+  if(controlTime[1] < 10){
+    dmd.drawString(46, 1, String(controlTime[1]));
+  }else{
+    separatedNumbers(controlTime[1],32);
+  }
+  if(teams[2] < 10){
+    dmd.drawString(77, 1, String(teams[2]));
+  }else{
+    separatedNumbers(teams[2],64);
+  }
+  //Fila Central
+  if(teams[1] < 10){
+    dmd.drawString(109, 1, String(teams[0]));
+  }else{
+    separatedNumbers(teams[0],96);
+  }
+  if(configGame[4] < 10){
+    dmd.drawString(141, 1, String(controlTime[1]));
+  }else{
+    separatedNumbers(controlTime[1],128);
+  }
+  if(teams[3] < 10){
+    dmd.drawString(173, 1, String(teams[3]));
+  }else{
+    separatedNumbers(teams[3],160);
+  }
+  //Fila Inferior
+  if(timer[2] < 10){
+    dmd.drawString(205, 1, String(timer[2]));
+  }else{
+    separatedNumbers(timer[2],192);
+  }
+  dmd.drawString(222, 1, ":");
+  if(timer[3] < 10){
+    dmd.drawString(237, 1, String(timer[3]));
+  }else{
+    separatedNumbers(timer[3],224);
+  } 
+  Serial.println("Tablero: ");
+  Serial.print("Puntajes----> Local: ");
+  Serial.print("     Periodo");
+  Serial.println("     Puntaje Visitante");
+  Serial.print("          ");
+  Serial.print(teams[0]);
+  Serial.print("     ");s
+  Serial.print(controlTime[1]);
+  Serial.print("     ");
+  Serial.println(teams[2]);
+  Serial.print("Faltas Local");
+  Serial.print("     Extra");
+  Serial.println("     Faltas Visitante");
+  Serial.print("          ");
+  Serial.print(teams[1]);
+  Serial.print("     ");
+  Serial.print(configGame[4]);
+  Serial.print("     ");
+  Serial.println(teams[3]);
+  Serial.println("          Tiempo");
+  Serial.print("             ");
+  Serial.print(timer[2]);
+  Serial.print(":");
+  Serial.println(timer[3]);
+ 
+}
+
+void separatedNumbers(int number, int x){
+  int decenas = number/10;
+  int unidades = number - (decenas*10);
+  dmd.drawString(x+5, 1, String(decenas));
+  dmd.drawString(x+13, 1, String(unidades));   
 }
