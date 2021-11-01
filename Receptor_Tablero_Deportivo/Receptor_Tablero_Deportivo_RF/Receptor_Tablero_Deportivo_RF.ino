@@ -4,12 +4,6 @@
 //Libreria I2C
 #include <Wire.h>
 
-//Libreria Software Serial
-//#include <SoftwareSerial.h>
-
-//Definimos los pines del puerto serial
-//SoftwareSerial arduino(15, 14); //Rx, Tx
-
 // Libreria Funcion de tiempo DS3231
 #include "RTClib.h"
 
@@ -36,19 +30,12 @@ RF24 radio(CE_PIN, CSN_PIN);
 //Vector con los datos a recibir
 char datos_remote[6];
 
-char datos[10], temp;
+char datos[10];
 boolean flag = false;
-char dataSlave[10];
 
 //Variables para el control de tiempo
 int  minuto = 0, segundo = 0, decenas_minutos = 0, unidad_minutos = 0, decenas_segundos = 0, unidad_segundos = 0, segundero = 0;
 DateTime now;
-
-//Indicador LED de recepcion Inalambrica
-#define PIN_LED 4
-
-//Indicador de transmision de datos por I2C correctamente
-#define PIN_FLAG 5
 
 // Arranque inicial del sistema
 void setup() {
@@ -59,31 +46,22 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Iniciando...");
 
-//  Inicializamos el puerto serial emulado
-//  arduino.begin(9600);
-//  Serial.println("Iniciando serial emulado...");
-
   //Inicializamos el puerto I2C como maestro
-//  Serial.println("Iniciando el puerto I2C como maestro...");
   Wire.begin();
 
   //Deteccion del reloj
-//  Serial.println("Detectando reloj...");
-  if (rtc.begin()) {
-//    Serial.println("RTC detectado!");
-  } else {
+  if (!rtc.begin()) {
     Serial.println("No se puede encontrar Reloj RTC!!");
     while (1);
   }
 
   //Verificar si el reloj no tiene bateria y se encuentra desincronizado
-//  Serial.println("Verificando estado de energia y configuracion de tiempo actualmente en el RTC.");
   if (rtc.lostPower()) {
     Serial.println("RTC sin energia. Configurando el tiempo!");
     // Esta linea setea el RTC a la fecha y tiempo de esta compilacion
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   } else {
-//    Serial.println("RTC con configuracion de tiempo valida!");
+
   }
 
   //Inicializamos el NRF24L01
@@ -101,16 +79,7 @@ void setup() {
   //Inicializamos la escucha por el canal
   radio.startListening();
 
-  //Led indicador de datos recibidos
-  pinMode(PIN_LED, OUTPUT);
-  digitalWrite(PIN_LED, LOW);
-
-  //Flag de transmision de datos correctos
-  pinMode(PIN_FLAG, OUTPUT);
-  digitalWrite(PIN_FLAG, LOW);
-
   //Seteamos el tiempo inicial
-  rtc.begin();
   Serial.print("El tiempo inicial es ");
   now = rtc.now();
   Serial.print(now.hour());
@@ -124,57 +93,44 @@ void loop() {
   // Chequeamos si hay data en el canal de lectura
   if (radio.available()) {
     //Leemos los datos y los guardamos en la variable datos_remote[]
-    flag = true;
-    digitalWrite(PIN_LED, HIGH);
     radio.read(datos_remote, sizeof(datos_remote));
     delay(50);
-    digitalWrite(PIN_LED, LOW);
-
-    //Reportamos por el puerto serial los datos recibidos
-    Serial.print("Los datos recibidos inalambricamente son " );
-    Serial.print(datos_remote);
-    Serial.print(" con una longitud de ");
-    Serial.print(sizeof(datos_remote));
-    Serial.println(" bytes.");
-
-    //Procedemos a enviar los datos por puerto I2C
     tiempo();
+    delay(50);
+    flag = true;
     assemble_data();
     if (!send_data()) {
-      Serial.println("Error al enviar los datos por I2C... No se enviaron correctamente!");
-      digitalWrite(PIN_FLAG, LOW);
+      Serial.println("Error al enviar datos por el puerto I2C!!");
     } else {
-      digitalWrite(PIN_FLAG, HIGH);
-      Serial.print("Los datos se enviaron correctamente por el puerto I2C! Los datos son ");
-      Serial.print(datos);
-      Serial.print(" con una longitud de ");
+      Serial.print("Enviados los datos ");
+      Serial.flush();
+      Serial.print(String(datos));
+      Serial.flush();
+      Serial.print(" por I2C, con una longitud de ");
       Serial.print(sizeof(datos));
       Serial.println(" bytes.");
     }
     delay(50);
-    digitalWrite(PIN_FLAG, LOW);
   } else {
     //Leemos el tiempo actual
-    flag = false;
     tiempo();
     if (segundero != segundo) {
       //Procedemos a enviar los datos por puerto I2C
+      flag = false;
       assemble_data();
       if (!send_data()) {
-        Serial.println("Error al enviar datos por el puerto I2C... Fallo en el envio!");
-        digitalWrite(PIN_FLAG, LOW);
+        Serial.println("Error al enviar datos por el puerto I2C!!");
       } else {
-        digitalWrite(PIN_FLAG, HIGH);
-        Serial.print("Envio correcto por el puerto I2C! Se enviaron los datos " );
-        Serial.print(datos);
-        Serial.print(" con una longitud de ");
+        Serial.print("Enviados los datos " );
+        Serial.flush();
+        Serial.print(String(datos));
+        Serial.flush();
+        Serial.print(" por I2C, con una longitud de ");
         Serial.print(sizeof(datos));
         Serial.println(" bytes.");
       }
       delay(50);
-      digitalWrite(PIN_FLAG, LOW);
       segundero = segundo;
-      Serial.println("Esperando recibir informacion en el bus de datos SPI por el dispositivo RF...");
     }
   }
 }

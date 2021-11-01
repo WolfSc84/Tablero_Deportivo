@@ -71,6 +71,7 @@ void setup() {
   dmd.selectFont(Arial_Black_16);
   dmd.begin();
   dmd.clearScreen();
+  printScreen();
 }
 
 //Ejecucion del loop principal
@@ -80,12 +81,11 @@ void loop() {
   } else if (flag) {
     juego = gameSelect();
   }
-  printScreen();
 }
 
 //Interrupcion al recibir datos del maestro
 void receiveEvent(int bytes) {
-  Serial.print("Los datos recibidos son ");
+  Serial.print("Datos recibidos: ");
   for (int x = 0; x < bytes; x++) {
     if (Wire.available() > 0) {
       datos[x] = (char)Wire.read();
@@ -93,7 +93,7 @@ void receiveEvent(int bytes) {
       delay(5);
     }
   }
-  Serial.print(" siendo un total de ");
+  Serial.print(" ---> Longitud: ");
   Serial.print(bytes);
   Serial.println(" bytes.");
   tiempo();
@@ -104,7 +104,7 @@ void receiveEvent(int bytes) {
 void tiempo() {
   timer[0] = (charToNumber(datos[0]) * 10) + charToNumber(datos[1]);
   timer[1] = (charToNumber(datos[2]) * 10) + charToNumber(datos[3]);
-  Serial.print("Tiempo (mm:ss): ");
+  Serial.print("Clock (mm:ss): ");
   Serial.print(timer[0]);
   Serial.print(':');
   Serial.print(timer[1]);
@@ -116,7 +116,7 @@ void data() {
     if (datos[x] != 'N') {
       datos_remote[x - 4] = datos[x];
       if (x == 4) {
-        Serial.print(" ----> Data recibida del control remoto: ");
+        Serial.print(" ----> Comando recibido: ");
       }
       Serial.print(datos[x]);
       flag = true;
@@ -458,19 +458,23 @@ void game() {
       points();
       fouls();
     }
+    printScreen();
   } else if (control[1]) {
     if (!runningTime[2] || !runningTime[3]) {
       period();
     }
+    printScreen();
   } else if (control[4]) {
     runningTime[2] = true;
     runningTime[3] = true;
     runningTime[0] = false;
     runningTime[1] = false;
     juego = false;
+    printScreen();
   }
   if (datos_remote[5] == 'Y') {
     resetBoard();
+    printScreen();
   }
 }
 
@@ -521,20 +525,19 @@ void printScreen() {
   } else {
     separatedNumbers(timer[3], 224);
   }
-  Serial.println("Tablero: ");
-  Serial.print("Puntajes----> Local: ");
+  Serial.print("Score----> Local: ");
   Serial.print(teams[0]);
-  Serial.print("     Visitante: ");
+  Serial.print("     Visit: ");
   Serial.println(teams[2]);
-  Serial.print("Faltas----> Local: ");
+  Serial.print("Fouls----> Local: ");
   Serial.print(teams[1]);
-  Serial.print("     Visitante: ");
+  Serial.print("     Visit: ");
   Serial.println(teams[3]);
-  Serial.print("Periodo: ");
+  Serial.print("Period: ");
   Serial.print(controlTime[1]);
   Serial.print("     Extra: ");
-  Serial.println(configGame[4]);
-  Serial.print("Cronometro: ");
+  Serial.print(configGame[4]);
+  Serial.print("     Time: ");
   Serial.print(timer[2]);
   Serial.print(":");
   Serial.println(timer[3]);
