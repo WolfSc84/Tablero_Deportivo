@@ -46,9 +46,6 @@ void setup() {
   Serial.begin(9600);
   Serial.println("Iniciando...");
 
-  //Inicializamos el puerto I2C como maestro
-  Wire.begin();
-
   //Deteccion del reloj
   if (!rtc.begin()) {
     Serial.println("No se puede encontrar Reloj RTC!!");

@@ -76,11 +76,6 @@ void setup() {
 
 //Ejecucion del loop principal
 void loop() {
-  //  if (juego) {
-  //    game();
-  //  } else if (flag) {
-  //    juego = gameSelect();
-  //  }
   delay(10);
 }
 
@@ -127,17 +122,17 @@ void data() {
   }
   Serial.println();
   if (flag) {
-    Serial.println("Control------------------");
+    Serial.println("<----->Validating Control Game<----->");
     controlGame();
     if (control[0]) {
-      Serial.println("Extra------------------");
+      Serial.println("<----->Validating Extras<----->");
       extra();
-      Serial.println("Point------------------");
+      Serial.println("<----->Validating Points<----->");
       points();
-      Serial.println("Foul------------------");
+      Serial.println("<----->Validating Fouls<----->");
       fouls();
     } else if (control[1] && (!runningTime[2] || !runningTime[3])) {
-      Serial.println("Period------------------");
+      Serial.println("<----->Validating Periods<----->");
       period();
     } else if (control[4]) {
       runningTime[2] = true;
@@ -179,7 +174,6 @@ boolean gameSelect() {
     default:
       return false;
   }
-  //cleanDataRemote();
 }
 
 //Controla el juego (Arrancar, Pausar o Finalizar)
@@ -203,7 +197,6 @@ void controlGame() {
     default:
       break;
   }
-  //cleanDataRemote();
 }
 
 //Configura el juego con los parametros iniciales
@@ -294,7 +287,6 @@ void points() {
     default:
       break;
   }
-  //cleanDataRemote();
 }
 
 //Controla las faltas de los equipos
@@ -325,7 +317,6 @@ void fouls() {
     default:
       break;
   }
-  //cleanDataRemote();
 }
 
 //Controla el tiempo extra durante cada periodo de juego
@@ -347,7 +338,6 @@ void extra() {
     default:
       break;
   }
-  //cleanDataRemote();
 }
 
 //Controla los periodos de juego
@@ -416,7 +406,6 @@ void period() {
         break;
     }
   }
-  //cleanDataRemote();
 }
 
 //Cronometro de juego durante un periodo o tiempo complementario
@@ -488,18 +477,7 @@ void resetBoard() {
       }
     }
   }
-  //cleanDataRemote();
 }
-
-//Controla y gestiona la ejecucion del juego
-//void game() {
-//  if (control[0]) {
-//    if (segundero != timer[1]) {
-//      cronometer();
-//      printScreen();
-//    }
-//  }
-//}
 
 //Imprime en pantalla del tablero los valores
 void printScreen() {
