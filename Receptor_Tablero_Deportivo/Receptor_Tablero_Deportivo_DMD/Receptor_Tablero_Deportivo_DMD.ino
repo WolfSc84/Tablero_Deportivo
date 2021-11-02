@@ -76,11 +76,12 @@ void setup() {
 
 //Ejecucion del loop principal
 void loop() {
-  if (juego) {
-    game();
-  } else if (flag) {
-    juego = gameSelect();
-  }
+  //  if (juego) {
+  //    game();
+  //  } else if (flag) {
+  //    juego = gameSelect();
+  //  }
+  delay(10);
 }
 
 //Interrupcion al recibir datos del maestro
@@ -125,6 +126,42 @@ void data() {
     }
   }
   Serial.println();
+  if (flag) {
+    Serial.println("Control------------------");
+    controlGame();
+    if (control[0]) {
+      Serial.println("Extra------------------");
+      extra();
+      Serial.println("Point------------------");
+      points();
+      Serial.println("Foul------------------");
+      fouls();
+      if (segundero != timer[1]) {
+        cronometer();
+        printScreen();
+      }
+    } else if (control[1] && (!runningTime[2] || !runningTime[3])) {
+      Serial.println("Period------------------");
+      period();
+    } else if (control[4]) {
+      runningTime[2] = true;
+      runningTime[3] = true;
+      runningTime[0] = false;
+      runningTime[1] = false;
+      juego = false;
+      printScreen();
+    }
+  }
+  if (datos_remote[5] == 'Y') {
+    resetBoard();
+    printScreen();
+  }
+  if (juego) {
+    game();
+  } else if (flag) {
+    juego = gameSelect();
+  }
+
 }
 
 //Selecciona el tipo de deporte
@@ -142,6 +179,7 @@ boolean gameSelect() {
     default:
       return false;
   }
+  //cleanDataRemote();
 }
 
 //Controla el juego (Arrancar, Pausar o Finalizar)
@@ -157,7 +195,7 @@ void controlGame() {
       control[1] = true;
       control[4] = false;
       break;
-    case 's':
+    case 'S':
       control[0] = false;
       control[1] = false;
       control[4] = true;
@@ -165,10 +203,12 @@ void controlGame() {
     default:
       break;
   }
+  //cleanDataRemote();
 }
 
 //Configura el juego con los parametros iniciales
 void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtras) {
+  configGame[4] = 0;
   configGame[0] = maxTimeGame;
   configGame[1] = maxPeriodsGame;
   configGame[2] = maxExtraTime;
@@ -254,6 +294,7 @@ void points() {
     default:
       break;
   }
+  //cleanDataRemote();
 }
 
 //Controla las faltas de los equipos
@@ -284,6 +325,7 @@ void fouls() {
     default:
       break;
   }
+  //cleanDataRemote();
 }
 
 //Controla el tiempo extra durante cada periodo de juego
@@ -305,6 +347,7 @@ void extra() {
     default:
       break;
   }
+  //cleanDataRemote();
 }
 
 //Controla los periodos de juego
@@ -373,6 +416,7 @@ void period() {
         break;
     }
   }
+  //cleanDataRemote();
 }
 
 //Cronometro de juego durante un periodo o tiempo complementario
@@ -444,39 +488,18 @@ void resetBoard() {
       }
     }
   }
+  //cleanDataRemote();
 }
 
 //Controla y gestiona la ejecucion del juego
-void game() {
-  controlGame();
-  if (control[0]) {
-    if (segundero != timer[1]) {
-      cronometer();
-    }
-    if (flag) {
-      extra();
-      points();
-      fouls();
-    }
-    printScreen();
-  } else if (control[1]) {
-    if (!runningTime[2] || !runningTime[3]) {
-      period();
-    }
-    printScreen();
-  } else if (control[4]) {
-    runningTime[2] = true;
-    runningTime[3] = true;
-    runningTime[0] = false;
-    runningTime[1] = false;
-    juego = false;
-    printScreen();
-  }
-  if (datos_remote[5] == 'Y') {
-    resetBoard();
-    printScreen();
-  }
-}
+//void game() {
+//  if (control[0]) {
+//    if (segundero != timer[1]) {
+//      cronometer();
+//      printScreen();
+//    }
+//  }
+//}
 
 //Imprime en pantalla del tablero los valores
 void printScreen() {
@@ -501,12 +524,12 @@ void printScreen() {
   if (teams[1] < 10) {
     dmd.drawString(109, 1, String(teams[0]));
   } else {
-    separatedNumbers(teams[0], 96);
+    separatedNumbers(teams[1], 96);
   }
-  if (configGame[4] < 10) {
+  if (configGame[5] < 10) {
     dmd.drawString(141, 1, String(controlTime[1]));
   } else {
-    separatedNumbers(controlTime[1], 128);
+    separatedNumbers(configGame[5], 128);
   }
   if (teams[3] < 10) {
     dmd.drawString(173, 1, String(teams[3]));
@@ -536,7 +559,7 @@ void printScreen() {
   Serial.print("Period: ");
   Serial.print(controlTime[1]);
   Serial.print("     Extra: ");
-  Serial.print(configGame[4]);
+  Serial.print(configGame[5]);
   Serial.print("     Time: ");
   Serial.print(timer[2]);
   Serial.print(":");
