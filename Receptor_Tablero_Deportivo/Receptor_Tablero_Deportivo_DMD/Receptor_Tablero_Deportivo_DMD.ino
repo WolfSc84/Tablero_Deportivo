@@ -136,10 +136,6 @@ void data() {
       points();
       Serial.println("Foul------------------");
       fouls();
-      if (segundero != timer[1]) {
-        cronometer();
-        printScreen();
-      }
     } else if (control[1] && (!runningTime[2] || !runningTime[3])) {
       Serial.println("Period------------------");
       period();
@@ -157,11 +153,15 @@ void data() {
     printScreen();
   }
   if (juego) {
-    game();
+    if (control[0]) {
+      if (segundero != timer[1]) {
+        cronometer();
+        printScreen();
+      }
+    }
   } else if (flag) {
     juego = gameSelect();
   }
-
 }
 
 //Selecciona el tipo de deporte
