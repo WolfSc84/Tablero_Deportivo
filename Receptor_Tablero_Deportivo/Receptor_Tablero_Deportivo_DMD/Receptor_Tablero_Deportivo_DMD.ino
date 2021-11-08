@@ -10,7 +10,7 @@
 
 // Dimensiones del aviso Led
 #define ROW 1
-#define COLUMN 8
+#define COLUMN 2
 
 // Dimensiones del display
 SoftDMD dmd(COLUMN, ROW);
@@ -33,6 +33,9 @@ boolean flag = false;
 //Bandera de juego seleccionado
 boolean juego = false;
 
+//Bandera de reseteo del tablero
+boolean resetAll = true;
+
 //Control de juego (Arranque, Pausa, Fin Periodo, Fin Extra, Fin Juego)
 boolean control[5] = {false, false, false, false, false};
 
@@ -43,7 +46,7 @@ boolean runningTime[4] = {false, false, false, false};
 int teams[4] = {0, 0, 0, 0};
 
 //Control de tiempo complementario y periodos (Complementario Actual, Periodo Actual)
-int controlTime[2] = {0, 0};
+int controlTime[2] = {0, 0}, tempTime = 0;
 
 //Valores del juego (Tiempo maximo periodo Normal, Maximo numero de periodos, Maximo Tiempo de un omplementario, Maximo numero de Tiempos Complemenmtarios, Extra)
 int configGame[5] = {0, 0, 0, 0, 0};
@@ -66,6 +69,9 @@ void setup() {
   //Creamos las interrupciones que se activaran en caso de una solicitud o recepcion de dato
   Wire.onReceive(receiveEvent);
 
+  //Escaneamos los paneles
+  scanDMD();
+
   // Configuracion inicial de la pantalla
   dmd.setBrightness(255);
   dmd.selectFont(Arial_Black_16);
@@ -76,22 +82,16 @@ void setup() {
 
 //Ejecucion del loop principal
 void loop() {
-  delay(10);
 }
 
 //Interrupcion al recibir datos del maestro
 void receiveEvent(int bytes) {
-  Serial.print("Datos recibidos: ");
+  printScreen();
   for (int x = 0; x < bytes; x++) {
     if (Wire.available() > 0) {
       datos[x] = (char)Wire.read();
-      Serial.print(datos[x]);
-      delay(5);
     }
   }
-  Serial.print(" ---> Longitud: ");
-  Serial.print(bytes);
-  Serial.println(" bytes.");
   tiempo();
   data();
 }
@@ -100,10 +100,6 @@ void receiveEvent(int bytes) {
 void tiempo() {
   timer[0] = (charToNumber(datos[0]) * 10) + charToNumber(datos[1]);
   timer[1] = (charToNumber(datos[2]) * 10) + charToNumber(datos[3]);
-  Serial.print("Clock (mm:ss): ");
-  Serial.print(timer[0]);
-  Serial.print(':');
-  Serial.print(timer[1]);
 }
 
 //Captura la data proveniente del control remoto RF
@@ -111,9 +107,6 @@ void data() {
   for (int x = 4; x < sizeof(datos); x++) {
     if (datos[x] != 'N') {
       datos_remote[x - 4] = datos[x];
-      if (x == 4) {
-        Serial.print(" ----> Comando recibido: ");
-      }
       Serial.print(datos[x]);
       flag = true;
     } else {
@@ -122,40 +115,34 @@ void data() {
   }
   Serial.println();
   if (flag) {
-    Serial.println("<----->Validating Control Game<----->");
-    controlGame();
-    if (control[0]) {
-      Serial.println("<----->Validating Extras<----->");
-      extra();
-      Serial.println("<----->Validating Points<----->");
-      points();
-      Serial.println("<----->Validating Fouls<----->");
-      fouls();
-    } else if (control[1] && (!runningTime[2] || !runningTime[3])) {
-      Serial.println("<----->Validating Periods<----->");
-      period();
-    } else if (control[4]) {
-      runningTime[2] = true;
-      runningTime[3] = true;
-      runningTime[0] = false;
-      runningTime[1] = false;
-      juego = false;
-      printScreen();
+    if (datos_remote[5] == 'Y') {
+      resetBoard();
+    } else {
+      if (!juego && resetAll) {
+        juego = gameSelect();
+        printScreen();
+      } else {
+        controlGame();
+        if (control[0]) {
+          extra();
+          printScreen();
+          points();
+          printScreen();
+          fouls();
+          printScreen();
+        } else if (control[1] && (!runningTime[2] || !runningTime[3])) {
+          period();
+          printScreen();
+        }
+      }
     }
-  }
-  if (datos_remote[5] == 'Y') {
-    resetBoard();
-    printScreen();
-  }
-  if (juego) {
-    if (control[0]) {
+  } else {
+    if (juego && control[0]) {
       if (segundero != timer[1]) {
         cronometer();
         printScreen();
       }
     }
-  } else if (flag) {
-    juego = gameSelect();
   }
 }
 
@@ -182,17 +169,25 @@ void controlGame() {
     case 'r':
       control[0] = true;
       control[1] = false;
+      control[2] = false;
       control[4] = false;
       break;
     case 'p':
       control[0] = false;
       control[1] = true;
+      control[2] = false;
       control[4] = false;
       break;
     case 'S':
       control[0] = false;
       control[1] = false;
+      control[2] = true;
       control[4] = true;
+      runningTime[2] = true;
+      runningTime[3] = true;
+      runningTime[0] = false;
+      runningTime[1] = false;
+      juego = false;
       break;
     default:
       break;
@@ -201,12 +196,12 @@ void controlGame() {
 
 //Configura el juego con los parametros iniciales
 void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtras) {
+  resetBoard();
   configGame[4] = 0;
   configGame[0] = maxTimeGame;
   configGame[1] = maxPeriodsGame;
   configGame[2] = maxExtraTime;
   configGame[3] = maxExtras;
-  configGame[4] = 0;
   timer[2] = 0;
   timer[3] = 0;
   teams[0] = 0;
@@ -215,11 +210,13 @@ void setGame(int maxTimeGame, int maxPeriodsGame, int maxExtraTime, int maxExtra
   teams[3] = 0;
   controlTime[0] = 0;
   controlTime[1] = 1;
+  tempTime = 1;
   runningTime[0] = true;
   runningTime[1] = false;
   runningTime[2] = false;
   runningTime[3] = false;
   segundero = timer[3];
+  resetAll = false;
   printScreen();
 }
 
@@ -287,6 +284,7 @@ void points() {
     default:
       break;
   }
+  printScreen();
 }
 
 //Controla las faltas de los equipos
@@ -317,27 +315,29 @@ void fouls() {
     default:
       break;
   }
+  printScreen();
 }
 
 //Controla el tiempo extra durante cada periodo de juego
 void extra() {
   switch (datos_remote[4]) {
     case 'U':
-      if (configGame[5] < configGame[0]) {
-        configGame[5]++;
+      if (configGame[4] < configGame[0]) {
+        configGame[4]++;
       }
       break;
     case 'D':
-      if (configGame[5] > 0) {
-        configGame[5]--;
+      if (configGame[4] > 0) {
+        configGame[4]--;
       }
       break;
     case 'R':
-      configGame[5] = 0;
+      configGame[4] = 0;
       break;
     default:
       break;
   }
+  printScreen();
 }
 
 //Controla los periodos de juego
@@ -347,16 +347,24 @@ void period() {
       case 'P':
         if (controlTime[1] < configGame[1]) {
           controlTime[1]++;
+          tempTime = controlTime[1];
           timer[2] = 0;
           timer[3] = 0;
           control[2] = false;
           control[3] = false;
           control[4] = false;
+        } else {
+          runningTime[0] = false;
+          runningTime[1] = true;
+          runningTime[2] = true;
+          controlTime[0]++;
+          tempTime = controlTime[0];
         }
         break;
       case 'p':
         if (controlTime[1] > 0) {
           controlTime[1]--;
+          tempTime = controlTime[1];
           timer[2] = 0;
           timer[3] = 0;
           control[2] = false;
@@ -366,6 +374,7 @@ void period() {
         break;
       case 'r':
         controlTime[1] = 0;
+        tempTime = controlTime[1];
         timer[2] = 0;
         timer[3] = 0;
         control[2] = false;
@@ -380,15 +389,20 @@ void period() {
       case 'P':
         if (controlTime[0] < configGame[3]) {
           controlTime[0]++;
+          tempTime = controlTime[0];
           timer[2] = 0;
           timer[3] = 0;
           control[3] = false;
           control[4] = false;
+        } else {
+          runningTime[1] = false;
+          runningTime[3] = true;
         }
         break;
       case 'p':
         if (controlTime[0] > 0) {
           controlTime[0]--;
+          tempTime = controlTime[0];
           timer[2] = 0;
           timer[3] = 0;
           control[3] = false;
@@ -397,6 +411,7 @@ void period() {
         break;
       case 'r':
         controlTime[0] = 0;
+        tempTime = controlTime[0];
         timer[2] = 0;
         timer[3] = 0;
         control[3] = false;
@@ -406,6 +421,7 @@ void period() {
         break;
     }
   }
+  printScreen();
 }
 
 //Cronometro de juego durante un periodo o tiempo complementario
@@ -415,12 +431,12 @@ void cronometer() {
       timer[3]++;
       segundero = timer[3];
     } else {
-      if (timer[2] < (configGame[0] + configGame[5])) {
+      if (timer[2] < (configGame[0] + configGame[4])) {
         timer[2]++;
         timer[3] = 0;
         segundero = timer[3];
       } else {
-        timer[2] = (configGame[0] + configGame[5]);
+        timer[2] = (configGame[0] + configGame[4]);
         timer[3] = 0;
         segundero = timer[3];
         control[2] = true;
@@ -462,6 +478,7 @@ void cronometer() {
 void resetBoard() {
   flag = false;
   juego = false;
+  tempTime = 0;
   for (int x = 0; x < sizeof(datos_remote); x++) {
     datos_remote[x] = 'N';
     if (x < sizeof(control)) {
@@ -477,6 +494,8 @@ void resetBoard() {
       }
     }
   }
+  resetAll = true;
+  printScreen();
 }
 
 //Imprime en pantalla del tablero los valores
@@ -484,64 +503,65 @@ void printScreen() {
   dmd.clearScreen();
   //Fila Superior
   if (teams[0] < 10) {
-    dmd.drawString(13, 1, String(teams[0]));
+    dmd.drawString(13, 1, String(teams[0]), 1);
   } else {
     separatedNumbers(teams[0], 0);
   }
-  if (controlTime[1] < 10) {
-    dmd.drawString(46, 1, String(controlTime[1]));
+  if (tempTime < 10) {
+    dmd.drawString(45, 1, String(tempTime));
   } else {
-    separatedNumbers(controlTime[1], 32);
+    separatedNumbers(tempTime, 32);
+
   }
-  if (teams[2] < 10) {
-    dmd.drawString(77, 1, String(teams[2]));
-  } else {
-    separatedNumbers(teams[2], 64);
-  }
-  //Fila Central
-  if (teams[1] < 10) {
-    dmd.drawString(109, 1, String(teams[0]));
-  } else {
-    separatedNumbers(teams[1], 96);
-  }
-  if (configGame[5] < 10) {
-    dmd.drawString(141, 1, String(controlTime[1]));
-  } else {
-    separatedNumbers(configGame[5], 128);
-  }
-  if (teams[3] < 10) {
-    dmd.drawString(173, 1, String(teams[3]));
-  } else {
-    separatedNumbers(teams[3], 160);
-  }
-  //Fila Inferior
-  if (timer[2] < 10) {
-    dmd.drawString(205, 1, String(timer[2]));
-  } else {
-    separatedNumbers(timer[2], 192);
-  }
-  dmd.drawString(222, 1, ":");
-  if (timer[3] < 10) {
-    dmd.drawString(237, 1, String(timer[3]));
-  } else {
-    separatedNumbers(timer[3], 224);
-  }
-  Serial.print("Score----> Local: ");
-  Serial.print(teams[0]);
-  Serial.print("     Visit: ");
-  Serial.println(teams[2]);
-  Serial.print("Fouls----> Local: ");
-  Serial.print(teams[1]);
-  Serial.print("     Visit: ");
-  Serial.println(teams[3]);
-  Serial.print("Period: ");
-  Serial.print(controlTime[1]);
-  Serial.print("     Extra: ");
-  Serial.print(configGame[5]);
-  Serial.print("     Time: ");
-  Serial.print(timer[2]);
-  Serial.print(":");
-  Serial.println(timer[3]);
+  //  if (teams[2] < 10) {
+  //    dmd.drawString(77, 1, String(teams[2]));
+  //  } else {
+  //    separatedNumbers(teams[2], 64);
+  //  }
+  //  //Fila Central
+  //  if (teams[1] < 10) {
+  //    dmd.drawString(109, 1, String(teams[0]));
+  //  } else {
+  //    separatedNumbers(teams[1], 96);
+  //  }
+  //  if (configGame[4] < 10) {
+  //    dmd.drawString(141, 1, String(controlTime[1]));
+  //  } else {
+  //    separatedNumbers(configGame[4], 128);
+  //  }
+  //  if (teams[3] < 10) {
+  //    dmd.drawString(173, 1, String(teams[3]));
+  //  } else {
+  //    separatedNumbers(teams[3], 160);
+  //  }
+  //  //Fila Inferior
+  //  if (timer[2] < 10) {
+  //    dmd.drawString(205, 1, String(timer[2]));
+  //  } else {
+  //    separatedNumbers(timer[2], 192);
+  //  }
+  //  dmd.drawString(222, 1, ":");
+  //  if (timer[3] < 10) {
+  //    dmd.drawString(237, 1, String(timer[3]));
+  //  } else {
+  //    separatedNumbers(timer[3], 224);
+  //  }
+  //  Serial.print("Score----> Local: ");
+  //  Serial.print(teams[0]);
+  //  Serial.print("     Visit: ");
+  //  Serial.println(teams[2]);
+  //  Serial.print("Fouls----> Local: ");
+  //  Serial.print(teams[1]);
+  //  Serial.print("     Visit: ");
+  //  Serial.println(teams[3]);
+  //  Serial.print("Period: ");
+  //  Serial.print(controlTime[1]);
+  //  Serial.print("     Extra: ");
+  //  Serial.print(configGame[4]);
+  //  Serial.print("     Time: ");
+  //  Serial.print(timer[2]);
+  //  Serial.print(":");
+  //  Serial.println(timer[3]);
 }
 
 //Divide decenas de unidades
@@ -549,5 +569,10 @@ void separatedNumbers(int number, int x) {
   int decenas = number / 10;
   int unidades = number - (decenas * 10);
   dmd.drawString(x + 5, 1, String(decenas));
-  dmd.drawString(x + 13, 1, String(unidades));
+  dmd.drawString(x + 19, 1, String(unidades));
+}
+
+//Escanea la pantalla
+void scanDMD() {
+  dmd.scanDisplay();
 }

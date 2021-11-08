@@ -31,7 +31,7 @@ RF24 radio(CE_PIN, CSN_PIN);
 char datos_remote[6];
 
 char datos[10];
-boolean flag = false;
+boolean flag = false, runTime = false, gameSelected = false;
 
 //Variables para el control de tiempo
 int  minuto = 0, segundo = 0, decenas_minutos = 0, unidad_minutos = 0, decenas_segundos = 0, unidad_segundos = 0, segundero = 0;
@@ -57,8 +57,6 @@ void setup() {
     Serial.println("RTC sin energia. Configurando el tiempo!");
     // Esta linea setea el RTC a la fecha y tiempo de esta compilacion
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  } else {
-
   }
 
   //Inicializamos el NRF24L01
@@ -91,14 +89,12 @@ void loop() {
   if (radio.available()) {
     //Leemos los datos y los guardamos en la variable datos_remote[]
     radio.read(datos_remote, sizeof(datos_remote));
-    delay(50);
     tiempo();
-    delay(50);
     flag = true;
     assemble_data();
     if (!send_data()) {
       Serial.println("Error al enviar datos por el puerto I2C!!");
-    } else {
+    } else if (gameSelected)  {
       Serial.print("Enviados los datos ");
       Serial.flush();
       Serial.print(String(datos));
@@ -106,18 +102,20 @@ void loop() {
       Serial.print(" por I2C, con una longitud de ");
       Serial.print(sizeof(datos));
       Serial.println(" bytes.");
+    } else {
+      Serial.println("Seleccione un tipo de juego!!");
     }
-    delay(50);
-  } else {
+  } else if (runTime && gameSelected) {
     //Leemos el tiempo actual
     tiempo();
     if (segundero != segundo) {
       //Procedemos a enviar los datos por puerto I2C
       flag = false;
+      Serial.println("Tiempo enviandose continuamente...");
       assemble_data();
       if (!send_data()) {
         Serial.println("Error al enviar datos por el puerto I2C!!");
-      } else {
+      } else if (gameSelected) {
         Serial.print("Enviados los datos " );
         Serial.flush();
         Serial.print(String(datos));
@@ -126,7 +124,6 @@ void loop() {
         Serial.print(sizeof(datos));
         Serial.println(" bytes.");
       }
-      delay(50);
       segundero = segundo;
     }
   }
@@ -134,17 +131,24 @@ void loop() {
 
 //Inicia el proceso de envio de datos por puerto I2C
 boolean send_data() {
-  Wire.beginTransmission(1);
-  Wire.write(datos, sizeof(datos));
-  Wire.endTransmission();
-  delay(50);
+  if (gameSelected || datos_remote[5] == 'Y') {
+    Serial.println("Enviando datos...");
+    Wire.beginTransmission(1);
+    Wire.write(datos, sizeof(datos));
+    Wire.endTransmission();
+  }
+  if (datos_remote[5] == 'Y') {
+    gameSelected = false;
+  }
   return true;
 }
 
 //Armamos la trama de datos a enviar por I2C
 void assemble_data() {
   if (flag) {
+    int y;
     for (int x = 0; x < 10; x++) {
+      y = x - 4;
       switch (x) {
         case 0:
           datos[x] = numberToChar(decenas_minutos);
@@ -160,6 +164,9 @@ void assemble_data() {
           break;
         default:
           datos[x] = datos_remote[x - 4];
+          if ((y == 0) || (y == 1) || (y == 5)) {
+            validateGameRunning(y);
+          }
           break;
       }
     }
@@ -258,5 +265,33 @@ char numberToChar(int number) {
     default:
       return '0';
       break;
+  }
+}
+
+//Validar el envio de segundos continuamente
+void validateGameRunning(int x) {
+  if (x == 0) {
+    if ((datos_remote[x] == 'r') && gameSelected) {
+      runTime = true;
+    } else if ((datos_remote[x] == 'p') || (datos_remote[x] == 'S')) {
+      if (datos_remote[x] == 'p') {
+        Serial.println("Envio del tiempo detenido...");
+        runTime = false;
+      } else {
+        Serial.println("Juego finalizado...");
+        runTime = false;
+        gameSelected = false;
+      }
+    }
+  } else if (x == 1) {
+    if (datos_remote[x] == 's' || datos_remote[x] == 'b' || datos_remote[x] == 'o') {
+      Serial.println("Juego Seleccionado...");
+      gameSelected = true;
+    }
+  } else if (x == 5) {
+    if (datos_remote[x] == 'Y') {
+      Serial.println("Tablero Reseteado...");
+      runTime = false;
+    }
   }
 }
