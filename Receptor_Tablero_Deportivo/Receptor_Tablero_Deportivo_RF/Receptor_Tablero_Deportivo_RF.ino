@@ -36,8 +36,8 @@ boolean flag = false, runTime = false, gameSelected = false;
 //Variables para el control de tiempo
 int  minuto = 0, segundo = 0, decenas_minutos = 0, unidad_minutos = 0, decenas_segundos = 0, unidad_segundos = 0, segundero = 0;
 
-//Fin de juego
-#define END_GAME 4
+//Estatus del juego de juego
+#define GAME_STATUS 4
 
 //Objeto tipo reloj
 DateTime now;
