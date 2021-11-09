@@ -37,7 +37,7 @@ boolean flag = false, runTime = false, gameSelected = false;
 int  minuto = 0, segundo = 0, decenas_minutos = 0, unidad_minutos = 0, decenas_segundos = 0, unidad_segundos = 0, segundero = 0;
 
 //Estatus del juego de juego
-#define GAME_STATUS 4
+#define GAME_STATUS 2
 
 //Objeto tipo reloj
 DateTime now;
@@ -78,6 +78,12 @@ void setup() {
 
   //Inicializamos la escucha por el canal
   radio.startListening();
+
+  //Seteamos el indicador de estatus del partido
+  pinMode(GAME_STATUS, INPUT_PULLUP);
+
+  //Definimos las interrupcion encargada de setear el estado del partido
+  attachInterrupt(digitalPinToInterrupt(GAME_STATUS), stopRunTime, HIGH);
 
   //Seteamos el tiempo inicial
   Serial.print("El tiempo inicial es ");
@@ -299,4 +305,9 @@ void validateGameRunning(int x) {
       runTime = false;
     }
   }
+}
+
+//Interrupcion al recibir senal de parada del partido
+void stopRunTime(){
+  runTime = false;  
 }
