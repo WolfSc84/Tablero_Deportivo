@@ -57,6 +57,9 @@ int timer[4] = {0, 0, 0, 0};
 //Control de cambio en el tiempo
 int segundero;
 
+//Estatus del juego de juego
+#define GAME_STATUS 2
+
 // Arranque inicial del sistema
 void setup() {
   //Inicializamos el puerto serie
@@ -71,6 +74,10 @@ void setup() {
 
   //Escaneamos los paneles
   scanDMD();
+
+  //Seteamos el indicador de estatus del partido
+  pinMode(GAME_STATUS, OUTPUT);
+  digitalWrite(GAME_STATUS, LOW);
 
   // Configuracion inicial de la pantalla
   dmd.setBrightness(255);
@@ -442,6 +449,7 @@ void cronometer() {
         timer[3] = 0;
         segundero = timer[3];
       } else {
+        digitalWrite(GAME_STATUS, HIGH);
         timer[2] = (configGame[0] + configGame[4]);
         timer[3] = 0;
         segundero = timer[3];
@@ -453,6 +461,7 @@ void cronometer() {
           runningTime[0] = false;
           runningTime[1] = true;
         }
+        digitalWrite(GAME_STATUS, LOW);
       }
     }
   } else if (runningTime[1] && !runningTime[3]) {
@@ -465,6 +474,7 @@ void cronometer() {
         timer[3] = 0;
         segundero = timer[3];
       } else {
+        digitalWrite(GAME_STATUS, HIGH);
         timer[2] = configGame[2];
         timer[3] = 0;
         segundero = timer[3];
@@ -475,6 +485,7 @@ void cronometer() {
           runningTime[3] = true;
           runningTime[1] = false;
         }
+        digitalWrite(GAME_STATUS, LOW);
       }
     }
   }
@@ -545,10 +556,21 @@ void printScreen() {
   }
 
   //Fila Superior (Periodo y Complementario)
-  if (tempTime < 10) {
-    dmd.drawString(45, 17, String(tempTime));
+  if (runningTime[0] && !runningTime[1]) {
+    if (tempTime < 10) {
+      dmd.drawString(45, 17, String(tempTime));
+    } else {
+      separatedNumbers(tempTime, 32, 17);
+    }
+  } else if ((!runningTime[0] && runningTime[1]) || (runningTime[0] && runningTime[1])) {
+    if (tempTime < 10) {
+      dmd.drawString(37, 17, String('C'));
+      dmd.drawString(51, 17, String(tempTime));
+    } else {
+      separatedNumbers(tempTime, 32, 17);
+    }
   } else {
-    separatedNumbers(tempTime, 32, 17);
+    dmd.drawString(45, 17, String(tempTime));
   }
 
   //Fila Central (Faltas Visitante)
