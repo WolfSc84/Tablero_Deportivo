@@ -9,8 +9,8 @@
 #include "D:\Wolfgang Santamaria\Documents\Arduino\libraries\DMD2\fonts\Arial_black_16.h"
 
 // Dimensiones del aviso Led
-#define ROW 1
-#define COLUMN 2
+#define ROW 2
+#define COLUMN 4
 
 // Dimensiones del display
 SoftDMD dmd(COLUMN, ROW);
@@ -320,22 +320,24 @@ void fouls() {
 
 //Controla el tiempo extra durante cada periodo de juego
 void extra() {
-  switch (datos_remote[4]) {
-    case 'U':
-      if (configGame[4] < configGame[0]) {
-        configGame[4]++;
-      }
-      break;
-    case 'D':
-      if (configGame[4] > 0) {
-        configGame[4]--;
-      }
-      break;
-    case 'R':
-      configGame[4] = 0;
-      break;
-    default:
-      break;
+  if (runningTime[0] && !runningTime[2]) {
+    switch (datos_remote[4]) {
+      case 'U':
+        if (configGame[4] < configGame[0]) {
+          configGame[4]++;
+        }
+        break;
+      case 'D':
+        if (configGame[4] > 0) {
+          configGame[4]--;
+        }
+        break;
+      case 'R':
+        configGame[4] = 0;
+        break;
+      default:
+        break;
+    }
   }
   printScreen();
 }
@@ -350,6 +352,7 @@ void period() {
           tempTime = controlTime[1];
           timer[2] = 0;
           timer[3] = 0;
+          configGame[4] = 0;
           control[2] = false;
           control[3] = false;
           control[4] = false;
@@ -358,15 +361,17 @@ void period() {
           runningTime[1] = true;
           runningTime[2] = true;
           controlTime[0]++;
+          configGame[4] = 0;
           tempTime = controlTime[0];
         }
         break;
       case 'p':
-        if (controlTime[1] > 0) {
+        if (controlTime[1] > 1) {
           controlTime[1]--;
           tempTime = controlTime[1];
           timer[2] = 0;
           timer[3] = 0;
+          configGame[4] = 0;
           control[2] = false;
           control[3] = false;
           control[4] = false;
@@ -377,6 +382,7 @@ void period() {
         tempTime = controlTime[1];
         timer[2] = 0;
         timer[3] = 0;
+        configGame[4] = 0;
         control[2] = false;
         control[3] = false;
         control[4] = false;
@@ -400,7 +406,7 @@ void period() {
         }
         break;
       case 'p':
-        if (controlTime[0] > 0) {
+        if (controlTime[0] > 1) {
           controlTime[0]--;
           tempTime = controlTime[0];
           timer[2] = 0;
@@ -427,7 +433,7 @@ void period() {
 //Cronometro de juego durante un periodo o tiempo complementario
 void cronometer() {
   if (runningTime[0] && !runningTime[2]) {
-    if (timer[3] < 60) {
+    if (timer[3] < 59) {
       timer[3]++;
       segundero = timer[3];
     } else {
@@ -450,7 +456,7 @@ void cronometer() {
       }
     }
   } else if (runningTime[1] && !runningTime[3]) {
-    if (timer[3] < 60) {
+    if (timer[3] < 59) {
       timer[3]++;
       segundero = timer[3];
     } else {
@@ -501,75 +507,71 @@ void resetBoard() {
 //Imprime en pantalla del tablero los valores
 void printScreen() {
   dmd.clearScreen();
-  //Fila Superior
-  if (teams[0] < 10) {
-    dmd.drawString(13, 1, String(teams[0]), 1);
-  } else {
-    separatedNumbers(teams[0], 0);
-  }
-  if (tempTime < 10) {
-    dmd.drawString(45, 1, String(tempTime));
-  } else {
-    separatedNumbers(tempTime, 32);
 
+  //Fila Central (Falta Locales)
+  if (teams[1] < 10) {
+    dmd.drawString(13, 1, String(teams[1]));
+  } else {
+    separatedNumbers(teams[1], 0, 1);
   }
-  //  if (teams[2] < 10) {
-  //    dmd.drawString(77, 1, String(teams[2]));
-  //  } else {
-  //    separatedNumbers(teams[2], 64);
-  //  }
-  //  //Fila Central
-  //  if (teams[1] < 10) {
-  //    dmd.drawString(109, 1, String(teams[0]));
-  //  } else {
-  //    separatedNumbers(teams[1], 96);
-  //  }
-  //  if (configGame[4] < 10) {
-  //    dmd.drawString(141, 1, String(controlTime[1]));
-  //  } else {
-  //    separatedNumbers(configGame[4], 128);
-  //  }
-  //  if (teams[3] < 10) {
-  //    dmd.drawString(173, 1, String(teams[3]));
-  //  } else {
-  //    separatedNumbers(teams[3], 160);
-  //  }
-  //  //Fila Inferior
-  //  if (timer[2] < 10) {
-  //    dmd.drawString(205, 1, String(timer[2]));
-  //  } else {
-  //    separatedNumbers(timer[2], 192);
-  //  }
-  //  dmd.drawString(222, 1, ":");
-  //  if (timer[3] < 10) {
-  //    dmd.drawString(237, 1, String(timer[3]));
-  //  } else {
-  //    separatedNumbers(timer[3], 224);
-  //  }
-  //  Serial.print("Score----> Local: ");
-  //  Serial.print(teams[0]);
-  //  Serial.print("     Visit: ");
-  //  Serial.println(teams[2]);
-  //  Serial.print("Fouls----> Local: ");
-  //  Serial.print(teams[1]);
-  //  Serial.print("     Visit: ");
-  //  Serial.println(teams[3]);
-  //  Serial.print("Period: ");
-  //  Serial.print(controlTime[1]);
-  //  Serial.print("     Extra: ");
-  //  Serial.print(configGame[4]);
-  //  Serial.print("     Time: ");
-  //  Serial.print(timer[2]);
-  //  Serial.print(":");
-  //  Serial.println(timer[3]);
+
+  //Fila Superior (Puntos Locales)
+  if (teams[0] < 10) {
+    dmd.drawString(45, 1, String(teams[0]));
+  } else {
+    separatedNumbers(teams[0], 32, 1);
+  }
+
+  //Fila Inferior (Cronometro)
+  if (timer[2] < 10) {
+    dmd.drawString(69, 1, String(0));
+    dmd.drawString(83, 1, String(timer[2]));
+  } else {
+    separatedNumbers(timer[2], 64, 1);
+  }
+  dmd.drawString(94, 1, ":");
+  if (timer[3] < 10) {
+    dmd.drawString(101, 1, String(0));
+    dmd.drawString(115, 1, String(timer[3]));
+  } else {
+    separatedNumbers(timer[3], 96, 1);
+  }
+
+  //Fila Central (Extra)
+  if (configGame[4] < 10) {
+    dmd.drawString(13, 17, String(configGame[4]));
+  } else {
+    separatedNumbers(configGame[4], 0, 17);
+  }
+
+  //Fila Superior (Periodo y Complementario)
+  if (tempTime < 10) {
+    dmd.drawString(45, 17, String(tempTime));
+  } else {
+    separatedNumbers(tempTime, 32, 17);
+  }
+
+  //Fila Central (Faltas Visitante)
+  if (teams[3] < 10) {
+    dmd.drawString(77, 17, String(teams[3]));
+  } else {
+    separatedNumbers(teams[3], 64, 17);
+  }
+
+  //Fila Superior (Puntos Visitante)
+  if (teams[2] < 10) {
+    dmd.drawString(109, 17, String(teams[2]));
+  } else {
+    separatedNumbers(teams[2], 96, 17);
+  }
 }
 
 //Divide decenas de unidades
-void separatedNumbers(int number, int x) {
+void separatedNumbers(int number, int x, int y) {
   int decenas = number / 10;
   int unidades = number - (decenas * 10);
-  dmd.drawString(x + 5, 1, String(decenas));
-  dmd.drawString(x + 19, 1, String(unidades));
+  dmd.drawString(x + 5, y, String(decenas));
+  dmd.drawString(x + 19, y, String(unidades));
 }
 
 //Escanea la pantalla
