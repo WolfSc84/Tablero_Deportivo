@@ -445,7 +445,7 @@ void period() {
 //Cronometro de juego durante un periodo o tiempo complementario
 void cronometer() {
   if (runningTime[0] && !runningTime[2]) {
-    if (timer[3] < 59) {
+    if (timer[3] < 59 && (timer[2] < (configGame[0] + configGame[4]))) {
       timer[3]++;
       segundero = timer[3];
     } else {
@@ -469,7 +469,7 @@ void cronometer() {
       }
     }
   } else if (runningTime[1] && !runningTime[3]) {
-    if (timer[3] < 59) {
+    if (timer[3] < 59 && (timer[2] < configGame[2])) {
       timer[3]++;
       segundero = timer[3];
     } else {
@@ -569,8 +569,6 @@ void printScreen() {
     if (tempTime < 10) {
       dmd.drawString(37, 17, String('C'));
       dmd.drawString(51, 17, String(tempTime));
-    } else {
-      separatedNumbers(tempTime, 32, 17);
     }
   } else if ((configGame[3] == 2) && runningTime[2] && runningTime[3]) {
     dmd.drawString(45, 17, String('P'));
