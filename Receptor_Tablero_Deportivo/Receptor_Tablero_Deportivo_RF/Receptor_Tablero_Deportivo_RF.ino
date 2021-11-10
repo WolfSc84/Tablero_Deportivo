@@ -80,10 +80,7 @@ void setup() {
   radio.startListening();
 
   //Seteamos el indicador de estatus del partido
-  pinMode(GAME_STATUS, INPUT_PULLUP);
-
-  //Definimos las interrupcion encargada de setear el estado del partido
-  attachInterrupt(digitalPinToInterrupt(GAME_STATUS), stopRunTime, HIGH);
+  pinMode(GAME_STATUS, INPUT);
 
   //Seteamos el tiempo inicial
   Serial.print("El tiempo inicial es ");
@@ -107,9 +104,7 @@ void loop() {
       Serial.println("Error al enviar datos por el puerto I2C!!");
     } else if (gameSelected)  {
       Serial.print("Enviados los datos ");
-      Serial.flush();
       Serial.print(String(datos));
-      Serial.flush();
       Serial.print(" por I2C, con una longitud de ");
       Serial.print(sizeof(datos));
       Serial.println(" bytes.");
@@ -122,15 +117,12 @@ void loop() {
     if (segundero != segundo) {
       //Procedemos a enviar los datos por puerto I2C
       flag = false;
-      Serial.println("Tiempo enviandose continuamente...");
       assemble_data();
       if (!send_data()) {
         Serial.println("Error al enviar datos por el puerto I2C!!");
       } else if (gameSelected) {
-        Serial.print("Enviados los datos " );
-        Serial.flush();
+        Serial.print("Envio de datos " );
         Serial.print(String(datos));
-        Serial.flush();
         Serial.print(" por I2C, con una longitud de ");
         Serial.print(sizeof(datos));
         Serial.println(" bytes.");
@@ -138,12 +130,14 @@ void loop() {
       segundero = segundo;
     }
   }
+  if (digitalRead(GAME_STATUS)) {
+    stopRunTime();
+  }
 }
 
 //Inicia el proceso de envio de datos por puerto I2C
 boolean send_data() {
   if (gameSelected || datos_remote[5] == 'Y') {
-    Serial.println("Enviando datos...");
     Wire.beginTransmission(1);
     Wire.write(datos, sizeof(datos));
     Wire.endTransmission();
@@ -308,6 +302,6 @@ void validateGameRunning(int x) {
 }
 
 //Interrupcion al recibir senal de parada del partido
-void stopRunTime(){
-  runTime = false;  
+void stopRunTime() {
+  runTime = false;
 }

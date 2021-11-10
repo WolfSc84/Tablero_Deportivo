@@ -89,6 +89,8 @@ void setup() {
 
 //Ejecucion del loop principal
 void loop() {
+  delay(10);
+  digitalWrite(GAME_STATUS, LOW);
 }
 
 //Interrupcion al recibir datos del maestro
@@ -99,8 +101,8 @@ void receiveEvent(int bytes) {
       datos[x] = (char)Wire.read();
     }
   }
-  tiempo();
   data();
+  tiempo();
 }
 
 //Captura el tiempo recibido del reloj desde el maestro
@@ -121,7 +123,17 @@ void data() {
     }
   }
   Serial.println();
-  if (flag) {
+  if (!flag) {
+    if (juego && control[0]) {
+      if (segundero != timer[1]) {
+        cronometer();
+        printScreen();
+      }
+    }
+    if (runningTime[2] && runningTime[3]) {
+      digitalWrite(GAME_STATUS, HIGH);
+    }
+  } else {
     if (datos_remote[5] == 'Y') {
       resetBoard();
     } else {
@@ -133,20 +145,13 @@ void data() {
         if (control[0]) {
           extra();
           printScreen();
-          points();
-          printScreen();
           fouls();
           printScreen();
         } else if (control[1] && (!runningTime[2] || !runningTime[3])) {
           period();
           printScreen();
         }
-      }
-    }
-  } else {
-    if (juego && control[0]) {
-      if (segundero != timer[1]) {
-        cronometer();
+        points();
         printScreen();
       }
     }
@@ -461,7 +466,6 @@ void cronometer() {
           runningTime[0] = false;
           runningTime[1] = true;
         }
-        digitalWrite(GAME_STATUS, LOW);
       }
     }
   } else if (runningTime[1] && !runningTime[3]) {
@@ -485,7 +489,6 @@ void cronometer() {
           runningTime[3] = true;
           runningTime[1] = false;
         }
-        digitalWrite(GAME_STATUS, LOW);
       }
     }
   }
@@ -562,13 +565,15 @@ void printScreen() {
     } else {
       separatedNumbers(tempTime, 32, 17);
     }
-  } else if ((!runningTime[0] && runningTime[1]) || (runningTime[0] && runningTime[1])) {
+  } else if ((!runningTime[0] && runningTime[1]) || (runningTime[2] && runningTime[3] && (configGame[3] != 2))) {
     if (tempTime < 10) {
       dmd.drawString(37, 17, String('C'));
       dmd.drawString(51, 17, String(tempTime));
     } else {
       separatedNumbers(tempTime, 32, 17);
     }
+  } else if ((configGame[3] == 2) && runningTime[2] && runningTime[3]) {
+    dmd.drawString(45, 17, String('P'));
   } else {
     dmd.drawString(45, 17, String(tempTime));
   }
